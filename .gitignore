@@ -26,3 +26,5 @@ test/stress.sh
 *.gch
 
 examples/test_main
+
+perf/test_main
