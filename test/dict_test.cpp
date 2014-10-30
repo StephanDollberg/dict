@@ -104,3 +104,58 @@ TEST_CASE("dict clear", "[dict][clear]") {
     d.clear();
     CHECK(d.size() == 0);
 }
+
+TEST_CASE("dict iteration", "[dict][iter]") {
+    SECTION("empty iteration") {
+        boost::dict<int, int> d;
+
+        for(auto&& e: d) {
+            (void) e;
+            CHECK(false);
+        }
+    }
+
+    SECTION("non-const iterator") {
+        boost::dict<int, int> d;
+        d[1] = 42;
+
+        for(auto&& e: d) {
+            CHECK(e == 42);
+        }
+    }
+
+    SECTION("const iteration") {
+        boost::dict<int, int> d;
+        d[1] = 42;
+
+        const auto& const_d = d;
+
+        for(const auto& e: const_d) {
+            CHECK(e == 42);
+        }
+    }
+
+    SECTION("cbegin/cend iteration") {
+        boost::dict<int, int> d;
+        d[1] = 42;
+
+        for(auto iter = d.cbegin(); iter != d.cend(); ++iter) {
+            CHECK(*iter == 42);
+        }
+    }
+
+    SECTION("skip iterator") {
+        // relies on identity hashing for integers
+        boost::dict<int, int> d;
+        d[1] = 1;
+        d[3] = 3;
+        d[6] = 6;
+
+        std::vector<int> results;
+        for(auto&& e: d) {
+            results.push_back(e);
+        }
+
+        CHECK(results == std::vector<int>({1, 3, 6}));
+    }
+}

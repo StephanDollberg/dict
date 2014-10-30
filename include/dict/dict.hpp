@@ -7,12 +7,58 @@
 #include <tuple>
 #include <cmath>
 #include <functional>
+#include <boost/iterator/iterator_facade.hpp>
 
 namespace boost {
 
+// iterators
+template <typename Key, typename Value, typename Iter>
+class dict_iterator_base
+    : public boost::iterator_facade<dict_iterator_base<Key, Value, Iter>, Value,
+                                    boost::forward_traversal_tag> {
+public:
+    dict_iterator_base() : _ptr(), _end() {}
+    dict_iterator_base(Iter p, Iter end) : _ptr(p), _end(end) {
+        if (!std::get<0>(*_ptr)) {
+            increment();
+        }
+    }
+
+private:
+    friend class boost::iterator_core_access;
+
+    void increment() {
+        while (_ptr != _end) {
+            ++_ptr;
+            if (std::get<0>(*_ptr)) {
+                break;
+            }
+        }
+    }
+
+    bool equal(const dict_iterator_base<Key, Value, Iter>& other) const {
+        return this->_ptr == other._ptr;
+    }
+
+    Value& dereference() const { return std::get<2>(*_ptr); }
+
+    Iter _ptr;
+    const Iter _end;
+};
+
+template <typename Key, typename Value>
+using dict_iterator = dict_iterator_base<
+    Key, Value, typename std::vector<std::tuple<bool, Key, Value>>::iterator>;
+
+template <typename Key, typename Value>
+using const_dict_iterator = dict_iterator_base<
+    Key, const Value,
+    typename std::vector<std::tuple<bool, Key, Value>>::const_iterator>;
+
+// container
 template <typename Key, typename Value, typename Hasher = std::hash<Key>,
           typename KeyEqual = std::equal_to<Key>,
-          typename Allocator = std::allocator< std::tuple<bool, Key, Value>>>
+          typename Allocator = std::allocator<std::tuple<bool, Key, Value>>>
 class dict {
 public:
     typedef Key key_type;
@@ -28,9 +74,35 @@ public:
     typedef typename table_type::difference_type difference_type;
     typedef value_type& reference;
 
+    typedef dict_iterator<Key, Value> iterator;
+    typedef const_dict_iterator<Key, Value> const_iterator;
+
     dict()
-        : _table(8, std::make_tuple(false, Key(), Value())),
-          _element_count(0), _max_element_count(load_factor() * _table.size()) {
+        : _table(8, std::make_tuple(false, Key(), Value())), _element_count(0),
+          _max_element_count(load_factor() * _table.size()) {}
+
+    iterator begin() {
+        return iterator{ _table.begin(), _table.end() };
+    }
+
+    const_iterator begin() const {
+        return const_iterator{ _table.begin(), _table.end() };
+    }
+
+    const_iterator cbegin() const {
+        return const_iterator{ _table.begin(), _table.end() };
+    }
+
+    iterator end() {
+        return iterator{ _table.end(), _table.end() };
+    }
+
+    const_iterator end() const {
+        return const_iterator{ _table.end(), _table.end() };
+    }
+
+    const_iterator cend() const {
+        return const_iterator{ _table.end(), _table.end() };
     }
 
     size_type size() const { return _element_count; }
@@ -109,7 +181,6 @@ public:
     }
 
 private:
-
     Value& insert_element(size_type index, const Key& key, Value value) {
         rehash();
 
@@ -123,7 +194,7 @@ private:
         auto index = hash_index(key);
 
         while (std::get<0>(_table[index])) {
-            if (key_equal{}(std::get<1>(_table[index]), key)) {
+            if (key_equal {}(std::get<1>(_table[index]), key)) {
                 return index;
             }
 
@@ -142,7 +213,8 @@ private:
     double load_factor() const { return 0.7; }
 
     size_type hash_index(const Key& key) {
-        return hasher{}(key) % _table.size();
+        return hasher {}
+        (key) % _table.size();
     }
 
     entry_type empty_slot_factory() const {
