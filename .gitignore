@@ -1,0 +1,28 @@
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.out
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+
+test/test_main
+
+main
+
+main.cpp
+
+makefile
+
+test/stress.sh
+
+*.gch
+
+examples/test_main

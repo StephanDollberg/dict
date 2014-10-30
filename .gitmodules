@@ -1,0 +1,10 @@
+[submodule "test/catch"]
+	path = test/catch
+	url = git@github.com:philsquared/Catch.git
+
+[submodule "perf/nonius"]
+    path = perf/nonius
+    url = git@github.com/rmartinho/nonius.git
+[submodule "nonius"]
+	path = nonius
+	url = git@github.com:rmartinho/nonius.git
