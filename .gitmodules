@@ -4,7 +4,4 @@
 
 [submodule "perf/nonius"]
     path = perf/nonius
-    url = git@github.com/rmartinho/nonius.git
-[submodule "nonius"]
-	path = nonius
-	url = git@github.com:rmartinho/nonius.git
+    url = git@github.com:rmartinho/nonius.git
