@@ -7,15 +7,21 @@
 #include <tuple>
 #include <cmath>
 #include <functional>
+
 #include <boost/iterator/iterator_facade.hpp>
+
+#include "detail/prime.hpp"
 
 namespace boost {
 
 // iterators
 template <typename Key, typename Value, typename Iter>
 class dict_iterator_base
-    : public boost::iterator_facade<dict_iterator_base<Key, Value, Iter>, Value,
-                                    boost::forward_traversal_tag> {
+    : public boost::iterator_facade<dict_iterator_base<Key, Value, Iter>,
+                                    std::pair<const Key&, Value&>,
+                                    boost::forward_traversal_tag,
+                                    std::pair<const Key&, Value&>
+                                    > {
 public:
     dict_iterator_base() : _ptr(), _end() {}
     dict_iterator_base(Iter p, Iter end) : _ptr(p), _end(end) {
@@ -40,7 +46,9 @@ private:
         return this->_ptr == other._ptr;
     }
 
-    Value& dereference() const { return std::get<2>(*_ptr); }
+    std::pair<const Key&, Value&> dereference() const {
+        return {std::get<1>(*_ptr), std::get<2>(*_ptr)};
+    }
 
     Iter _ptr;
     const Iter _end;
@@ -78,8 +86,9 @@ public:
     typedef const_dict_iterator<Key, Value> const_iterator;
 
     dict()
-        : _table(8, std::make_tuple(false, Key(), Value())), _element_count(0),
-          _max_element_count(load_factor() * _table.size()) {}
+        : _table(initial_size(), std::make_tuple(false, Key(), Value())),
+          _element_count(0), _max_element_count(load_factor() * _table.size()) {
+    }
 
     iterator begin() {
         return iterator{ _table.begin(), _table.end() };
@@ -166,8 +175,9 @@ public:
     void reserve(std::size_t new_size) {
         if (new_size > _table.size()) {
 
-            table_type new_table(std::ceil(new_size / load_factor()),
-                                 std::make_tuple(false, Key(), Value()));
+            table_type new_table(
+                next_prime(std::ceil(new_size / load_factor())),
+                std::make_tuple(false, Key(), Value()));
             new_table.swap(_table);
             _max_element_count = load_factor() * _table.size();
             _element_count = 0;
@@ -194,7 +204,7 @@ private:
         auto index = hash_index(key);
 
         while (std::get<0>(_table[index])) {
-            if (key_equal {}(std::get<1>(_table[index]), key)) {
+            if (_key_equal(std::get<1>(_table[index]), key)) {
                 return index;
             }
 
@@ -213,14 +223,17 @@ private:
     double load_factor() const { return 0.7; }
 
     size_type hash_index(const Key& key) {
-        return hasher {}
-        (key) % _table.size();
+        return _hasher(key) % _table.size();
     }
 
     entry_type empty_slot_factory() const {
         return std::make_tuple(false, Key(), Value());
     }
 
+    size_type initial_size() const { return next_prime(8); }
+
+    hasher _hasher;
+    key_equal _key_equal;
     table_type _table;
     size_type _element_count;
     size_type _max_element_count;
