@@ -91,27 +91,27 @@ public:
     }
 
     iterator begin() {
-        return iterator{ _table.begin(), _table.end() };
+        return { _table.begin(), _table.end() };
     }
 
     const_iterator begin() const {
-        return const_iterator{ _table.begin(), _table.end() };
+        return { _table.begin(), _table.end() };
     }
 
     const_iterator cbegin() const {
-        return const_iterator{ _table.begin(), _table.end() };
+        return { _table.begin(), _table.end() };
     }
 
     iterator end() {
-        return iterator{ _table.end(), _table.end() };
+        return { _table.end(), _table.end() };
     }
 
     const_iterator end() const {
-        return const_iterator{ _table.end(), _table.end() };
+        return { _table.end(), _table.end() };
     }
 
     const_iterator cend() const {
-        return const_iterator{ _table.end(), _table.end() };
+        return { _table.end(), _table.end() };
     }
 
     size_type size() const { return _element_count; }
