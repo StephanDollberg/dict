@@ -90,33 +90,33 @@ public:
           _element_count(0), _max_element_count(load_factor() * _table.size()) {
     }
 
-    iterator begin() {
+    iterator begin() noexcept {
         return { _table.begin(), _table.end() };
     }
 
-    const_iterator begin() const {
+    const_iterator begin() const noexcept {
         return { _table.begin(), _table.end() };
     }
 
-    const_iterator cbegin() const {
+    const_iterator cbegin() const noexcept {
         return { _table.begin(), _table.end() };
     }
 
-    iterator end() {
+    iterator end() noexcept {
         return { _table.end(), _table.end() };
     }
 
-    const_iterator end() const {
+    const_iterator end() const noexcept {
         return { _table.end(), _table.end() };
     }
 
-    const_iterator cend() const {
+    const_iterator cend() const noexcept {
         return { _table.end(), _table.end() };
     }
 
-    size_type size() const { return _element_count; }
+    size_type size() const noexcept { return _element_count; }
 
-    bool empty() const { return _element_count == 0; }
+    bool empty() const noexcept { return _element_count == 0; }
 
     // size_type max_size() const {}
 
