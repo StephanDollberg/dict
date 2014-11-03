@@ -200,10 +200,10 @@ public:
     }
 
 private:
-    Value& insert_element(size_type index, const Key& key, Value value) {
+    Value& insert_element(size_type index, Key key, Value value) {
         rehash();
 
-        _table[index] = std::make_tuple(true, key, std::move(value));
+        _table[index] = std::make_tuple(true, std::move(key), std::move(value));
         ++_element_count;
 
         return std::get<2>(_table[index]);
