@@ -17,11 +17,9 @@ namespace boost {
 // iterators
 template <typename Key, typename Value, typename Iter>
 class dict_iterator_base
-    : public boost::iterator_facade<dict_iterator_base<Key, Value, Iter>,
-                                    std::pair<const Key&, Value&>,
-                                    boost::forward_traversal_tag,
-                                    std::pair<const Key&, Value&>
-                                    > {
+    : public boost::iterator_facade<
+          dict_iterator_base<Key, Value, Iter>, std::pair<const Key&, Value&>,
+          boost::forward_traversal_tag, std::pair<const Key&, Value&>> {
 public:
     dict_iterator_base() : _ptr(), _end() {}
     dict_iterator_base(Iter p, Iter end) : _ptr(p), _end(end) {
@@ -47,7 +45,7 @@ private:
     }
 
     std::pair<const Key&, Value&> dereference() const {
-        return {std::get<1>(*_ptr), std::get<2>(*_ptr)};
+        return { std::get<1>(*_ptr), std::get<2>(*_ptr) };
     }
 
     Iter _ptr;
@@ -123,6 +121,17 @@ public:
     void clear() {
         _table.clear();
         _element_count = 0;
+    }
+
+    std::pair<iterator, bool> insert(const value_type& obj) {
+        auto index = find_index(obj.first);
+
+        if (std::get<0>(_table[index])) {
+            return { { std::next(_table.begin(), index), _table.end() }, false };
+        } else {
+            insert_element(index, obj.first, obj.second);
+            return { { std::next(_table.begin(), index), _table.end() }, true };
+        }
     }
 
     Value& operator[](const Key& key) {

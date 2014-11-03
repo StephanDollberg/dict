@@ -10,8 +10,8 @@ struct fake_hasher {
     std::size_t operator()(int) const { return 42; }
 };
 
-TEST_CASE("dict insert", "[dict][insert]") {
-    SECTION("simple insert") {
+TEST_CASE("dict operator[]", "[dict][operator[]]") {
+    SECTION("simple operator[]") {
         boost::dict<int, std::string> d;
         CHECK(d.size() == 0);
 
@@ -23,7 +23,7 @@ TEST_CASE("dict insert", "[dict][insert]") {
         CHECK(d.size() == 1);
     }
 
-    SECTION("insert collision") {
+    SECTION("operator[] collision") {
         boost::dict<int, std::string, fake_hasher> d;
 
         std::string test_string = "hello";
@@ -35,7 +35,7 @@ TEST_CASE("dict insert", "[dict][insert]") {
         CHECK(d[2] == test_string2);
     }
 
-    SECTION("insert overwrite") {
+    SECTION("operator[] overwrite") {
         boost::dict<int, std::string> d;
 
         std::string test_string = "hello";
@@ -45,6 +45,22 @@ TEST_CASE("dict insert", "[dict][insert]") {
         std::string test_string2 = "hello2";
         d[2345] = test_string2;
         CHECK(d[2345] == test_string2);
+    }
+}
+
+TEST_CASE("dict insert", "[dict][insert]") {
+    SECTION("insert(value_type)") {
+        boost::dict<int, int> d;
+        auto res_success = d.insert(std::make_pair(1,2));
+        CHECK(res_success.first->first == 1);
+        CHECK(res_success.first->second == 2);
+        CHECK(res_success.second == true);
+        CHECK(d[1] == 2);
+
+        auto res_fail = d.insert(std::make_pair(1,2));
+        CHECK(res_fail.first->first == 1);
+        CHECK(res_fail.first->second == 2);
+        CHECK(res_fail.second == false);
     }
 }
 
