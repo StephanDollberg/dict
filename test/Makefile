@@ -1,23 +1,21 @@
 DEFINES= -D_GLIBCXX_USE_SCHED_YIELD -D_GLIBCXX_USE_NANOSLEEP
 
-SSL_LIBS =  -lssl -lcrypto
-
 UNAME := $(shell uname)
 ifeq ($(UNAME), Linux)
 	ifeq ($(CXX),clang++)
-		LIBS= -pthread -lc++abi -lboost_coroutine -lboost_context -lboost_system
+		LIBS= -fsanitize=address -lc++abi
 	else
-		LIBS= -lboost_coroutine -lboost_context -lboost_system $(SSL_LIBS)
+		LIBS= -fsanitize=address
 	endif
 endif
 ifeq ($(UNAME), Darwin)
-	LIBS= -lboost_coroutine-mt -lboost_context-mt -lboost_system-mt $(SSL_LIBS)
+	LIBS=
 endif
 
-ARGS= -std=c++11 -g -Wall -W -Wextra -pedantic-errors  $(INCLUDES) $(DEFINES)
+ARGS= -std=c++11  -g -Wall -W -Wextra -pedantic-errors  $(INCLUDES) $(DEFINES)
 
 ifeq ($(CXX),clang++-3.5)
-	ADD_INC_FLAGS = -nostdinc++ -I/usr/local/lib/llvm-3.5/include/c++/v1 -fno-omit-frame-pointer
+	ADD_INC_FLAGS = -nostdinc++ -I/usr/local/lib/llvm-3.5/include/c++/v1 -fsanitize=address -fno-omit-frame-pointer
 	ADD_LIB_FLAGS = -L/usr/local/lib/llvm-3.5/usr/lib
 else
  	ADD_INC_FLAGS =
