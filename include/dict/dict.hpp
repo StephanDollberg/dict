@@ -11,87 +11,11 @@
 #include <boost/iterator/iterator_facade.hpp>
 
 #include "detail/prime.hpp"
+#include "detail/key_value.hpp"
+#include "detail/iterator.hpp"
 
 namespace boost {
 
-// inspired/taken from libc++
-template <class Key, class Value>
-union key_value {
-    typedef Key key_type;
-    typedef Value mapped_type;
-    typedef std::pair<const key_type, mapped_type> value_type;
-    typedef std::pair<key_type, mapped_type> internal_value_type;
-
-    value_type const_view;
-    internal_value_type view;
-
-    template <typename... Args>
-    key_value(Args&&... args)
-        : const_view(std::forward<Args>(args)...) {}
-
-    key_value(const key_value& other) : const_view(other.const_view) {}
-
-    key_value(key_value&& other) : view(std::move(other.view)) {}
-
-    key_value& operator=(const key_value& other) {
-        view = other.const_view;
-        return *this;
-    }
-
-    key_value& operator=(key_value&& other) {
-        view = std::move(other.view);
-        return *this;
-    }
-
-    ~key_value() { const_view.~value_type(); }
-};
-
-// iterators
-template <typename value_type, typename Iter>
-class dict_iterator_base
-    : public boost::iterator_facade<dict_iterator_base<value_type, Iter>,
-                                    value_type, boost::forward_traversal_tag> {
-public:
-    dict_iterator_base() : _ptr(), _end() {}
-    dict_iterator_base(Iter p, Iter end) : _ptr(p), _end(end) {
-        if (!std::get<0>(*_ptr)) {
-            increment();
-        }
-    }
-
-private:
-    friend class boost::iterator_core_access;
-
-    void increment() {
-        while (_ptr != _end) {
-            ++_ptr;
-            if (std::get<0>(*_ptr)) {
-                break;
-            }
-        }
-    }
-
-    // template<typename OtherValue>
-    bool equal(const dict_iterator_base<value_type, Iter>& other) const {
-        return this->_ptr == other._ptr;
-    }
-
-    value_type& dereference() const { return std::get<1>(*_ptr).const_view; }
-
-    Iter _ptr;
-    const Iter _end;
-};
-
-template <typename Key, typename Value>
-using dict_iterator = dict_iterator_base<
-    std::pair<const Key, Value>,
-    typename std::vector<std::tuple<bool, key_value<Key, Value>>>::iterator>;
-
-template <typename Key, typename Value>
-using const_dict_iterator =
-    dict_iterator_base<const std::pair<const Key, Value>,
-                       typename std::vector<std::tuple<
-                           bool, key_value<Key, Value>>>::const_iterator>;
 // container
 template <typename Key, typename Value, typename Hasher = std::hash<Key>,
           typename KeyEqual = std::equal_to<Key>,
