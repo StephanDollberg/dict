@@ -10,6 +10,8 @@
 
 namespace boost {
 
+namespace detail {
+
 // iterators
 template <typename value_type, typename Iter>
 class dict_iterator_base
@@ -56,6 +58,8 @@ using const_dict_iterator =
     dict_iterator_base<const std::pair<const Key, Value>,
                        typename std::vector<std::tuple<
                            bool, key_value<Key, Value>>>::const_iterator>;
+
+} // detail
 
 } // namespace boost
 

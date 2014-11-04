@@ -5,6 +5,8 @@
 
 namespace boost {
 
+namespace detail {
+
 // inspired/taken from libc++
 template <class Key, class Value>
 union key_value {
@@ -36,6 +38,8 @@ union key_value {
 
     ~key_value() { const_view.~value_type(); }
 };
+
+} // detail
 
 } // namespace boost
 

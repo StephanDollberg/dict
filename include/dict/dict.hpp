@@ -20,7 +20,7 @@ namespace boost {
 template <typename Key, typename Value, typename Hasher = std::hash<Key>,
           typename KeyEqual = std::equal_to<Key>,
           typename Allocator =
-              std::allocator<std::tuple<bool, key_value<Key, Value>>>>
+              std::allocator<std::tuple<bool, detail::key_value<Key, Value>>>>
 class dict {
 public:
     typedef Key key_type;
@@ -30,14 +30,14 @@ public:
     typedef KeyEqual key_equal;
 
     typedef std::pair<const Key, Value> value_type;
-    typedef std::tuple<bool, key_value<Key, Value>> entry_type;
+    typedef std::tuple<bool, detail::key_value<Key, Value>> entry_type;
     typedef std::vector<entry_type, allocator_type> table_type;
     typedef typename table_type::size_type size_type;
     typedef typename table_type::difference_type difference_type;
     typedef value_type& reference;
 
-    typedef dict_iterator<Key, Value> iterator;
-    typedef const_dict_iterator<Key, Value> const_iterator;
+    typedef detail::dict_iterator<Key, Value> iterator;
+    typedef detail::const_dict_iterator<Key, Value> const_iterator;
 
     dict()
         : _table(initial_size(), empty_slot_factory()), _element_count(0),
