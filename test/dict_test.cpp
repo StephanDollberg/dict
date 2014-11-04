@@ -190,4 +190,9 @@ TEST_CASE("dict iteration", "[dict][iter]") {
         }
         CHECK(d[1] == 21);
     }
+
+    SECTION("const key") {
+        boost::dict<int, int> d;
+        static_assert(std::is_same<const int, decltype(d.begin()->first)>::value, "no const key");
+    }
 }

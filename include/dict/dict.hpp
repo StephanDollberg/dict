@@ -14,12 +14,43 @@
 
 namespace boost {
 
+// inspired/taken from libc++
+template <class Key, class Value>
+union key_value {
+    typedef Key key_type;
+    typedef Value mapped_type;
+    typedef std::pair<const key_type, mapped_type> value_type;
+    typedef std::pair<key_type, mapped_type> internal_value_type;
+
+    value_type const_view;
+    internal_value_type view;
+
+    template <typename... Args>
+    key_value(Args&&... args)
+        : const_view(std::forward<Args>(args)...) {}
+
+    key_value(const key_value& other) : const_view(other.const_view) {}
+
+    key_value(key_value&& other) : view(std::move(other.view)) {}
+
+    key_value& operator=(const key_value& other) {
+        view = other.const_view;
+        return *this;
+    }
+
+    key_value& operator=(key_value&& other) {
+        view = std::move(other.view);
+        return *this;
+    }
+
+    ~key_value() { const_view.~value_type(); }
+};
+
 // iterators
-template <typename Key, typename Value, typename Iter>
+template <typename value_type, typename Iter>
 class dict_iterator_base
-    : public boost::iterator_facade<
-          dict_iterator_base<Key, Value, Iter>, std::pair<const Key&, Value&>,
-          boost::forward_traversal_tag, std::pair<const Key&, Value&>> {
+    : public boost::iterator_facade<dict_iterator_base<value_type, Iter>,
+                                    value_type, boost::forward_traversal_tag> {
 public:
     dict_iterator_base() : _ptr(), _end() {}
     dict_iterator_base(Iter p, Iter end) : _ptr(p), _end(end) {
@@ -40,13 +71,12 @@ private:
         }
     }
 
-    bool equal(const dict_iterator_base<Key, Value, Iter>& other) const {
+    // template<typename OtherValue>
+    bool equal(const dict_iterator_base<value_type, Iter>& other) const {
         return this->_ptr == other._ptr;
     }
 
-    std::pair<const Key&, Value&> dereference() const {
-        return { std::get<1>(*_ptr), std::get<2>(*_ptr) };
-    }
+    value_type& dereference() const { return std::get<1>(*_ptr).const_view; }
 
     Iter _ptr;
     const Iter _end;
@@ -54,17 +84,19 @@ private:
 
 template <typename Key, typename Value>
 using dict_iterator = dict_iterator_base<
-    Key, Value, typename std::vector<std::tuple<bool, Key, Value>>::iterator>;
+    std::pair<const Key, Value>,
+    typename std::vector<std::tuple<bool, key_value<Key, Value>>>::iterator>;
 
 template <typename Key, typename Value>
-using const_dict_iterator = dict_iterator_base<
-    Key, const Value,
-    typename std::vector<std::tuple<bool, Key, Value>>::const_iterator>;
-
+using const_dict_iterator =
+    dict_iterator_base<const std::pair<const Key, Value>,
+                       typename std::vector<std::tuple<
+                           bool, key_value<Key, Value>>>::const_iterator>;
 // container
 template <typename Key, typename Value, typename Hasher = std::hash<Key>,
           typename KeyEqual = std::equal_to<Key>,
-          typename Allocator = std::allocator<std::tuple<bool, Key, Value>>>
+          typename Allocator =
+              std::allocator<std::tuple<bool, key_value<Key, Value>>>>
 class dict {
 public:
     typedef Key key_type;
@@ -73,8 +105,8 @@ public:
     typedef Hasher hasher;
     typedef KeyEqual key_equal;
 
-    typedef std::pair<Key, Value> value_type;
-    typedef std::tuple<bool, Key, Value> entry_type;
+    typedef std::pair<const Key, Value> value_type;
+    typedef std::tuple<bool, key_value<Key, Value>> entry_type;
     typedef std::vector<entry_type, allocator_type> table_type;
     typedef typename table_type::size_type size_type;
     typedef typename table_type::difference_type difference_type;
@@ -84,9 +116,8 @@ public:
     typedef const_dict_iterator<Key, Value> const_iterator;
 
     dict()
-        : _table(initial_size(), std::make_tuple(false, Key(), Value())),
-          _element_count(0), _max_element_count(load_factor() * _table.size()) {
-    }
+        : _table(initial_size(), empty_slot_factory()), _element_count(0),
+          _max_element_count(load_factor() * _table.size()) {}
 
     iterator begin() noexcept {
         return { _table.begin(), _table.end() };
@@ -127,7 +158,8 @@ public:
         auto index = find_index(obj.first);
 
         if (std::get<0>(_table[index])) {
-            return { { std::next(_table.begin(), index), _table.end() }, false };
+            return { { std::next(_table.begin(), index), _table.end() },
+                     false };
         } else {
             insert_element(index, obj.first, obj.second);
             return { { std::next(_table.begin(), index), _table.end() }, true };
@@ -138,7 +170,7 @@ public:
         auto index = find_index(key);
 
         if (std::get<0>(_table[index])) {
-            return std::get<2>(_table[index]);
+            return std::get<1>(_table[index]).view.second;
         } else {
             return insert_element(index, key, Value());
         }
@@ -165,7 +197,8 @@ public:
                     break;
                 }
 
-                auto new_key = hash_index(std::get<1>(_table[delete_index]));
+                auto new_key =
+                    hash_index(std::get<1>(_table[delete_index]).view.first);
 
                 if ((index <= delete_index)
                         ? ((index < new_key) && (new_key <= delete_index))
@@ -186,14 +219,15 @@ public:
 
             table_type new_table(
                 next_prime(std::ceil(new_size / load_factor())),
-                std::make_tuple(false, Key(), Value()));
+                empty_slot_factory());
             new_table.swap(_table);
             _max_element_count = load_factor() * _table.size();
             _element_count = 0;
 
             for (auto&& e : new_table) {
                 if (std::get<0>(e)) {
-                    (*this)[std::get<1>(e)] = std::move(std::get<2>(e));
+                    (*this)[std::get<1>(e).view.first] =
+                        std::move(std::get<1>(e).view.second);
                 }
             }
         }
@@ -203,17 +237,18 @@ private:
     Value& insert_element(size_type index, Key key, Value value) {
         rehash();
 
-        _table[index] = std::make_tuple(true, std::move(key), std::move(value));
+        _table[index] = std::make_tuple(
+            true, std::make_pair(std::move(key), std::move(value)));
         ++_element_count;
 
-        return std::get<2>(_table[index]);
+        return std::get<1>(_table[index]).view.second;
     }
 
     size_type find_index(const Key& key) {
         auto index = hash_index(key);
 
         while (std::get<0>(_table[index])) {
-            if (_key_equal(std::get<1>(_table[index]), key)) {
+            if (_key_equal(std::get<1>(_table[index]).view.first, key)) {
                 return index;
             }
 
@@ -236,7 +271,7 @@ private:
     }
 
     entry_type empty_slot_factory() const {
-        return std::make_tuple(false, Key(), Value());
+        return std::make_tuple(false, std::make_pair(Key(), Value()));
     }
 
     size_type initial_size() const { return next_prime(8); }
