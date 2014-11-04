@@ -40,7 +40,7 @@ public:
     typedef detail::const_dict_iterator<Key, Value> const_iterator;
 
     dict()
-        : _table(initial_size(), empty_slot_factory()), _element_count(0),
+        : _table(initial_size()), _element_count(0),
           _max_element_count(load_factor() * _table.size()) {}
 
     iterator begin() noexcept {
@@ -78,6 +78,20 @@ public:
         _element_count = 0;
     }
 
+    template <typename... Args>
+    std::pair<iterator, bool> emplace(Args&&... args) {
+        auto entry = make_entry(std::forward<Args>(args)...);
+        auto index = find_index(std::get<1>(entry).view.first);
+
+        if (std::get<0>(_table[index])) {
+            return { { std::next(_table.begin(), index), _table.end() },
+                     false };
+        } else {
+            insert_element(index, std::move(entry));
+            return { { std::next(_table.begin(), index), _table.end() }, true };
+        }
+    }
+
     std::pair<iterator, bool> insert(const value_type& obj) {
         auto index = find_index(obj.first);
 
@@ -85,7 +99,7 @@ public:
             return { { std::next(_table.begin(), index), _table.end() },
                      false };
         } else {
-            insert_element(index, obj.first, obj.second);
+            insert_element(index, make_entry(obj.first, obj.second));
             return { { std::next(_table.begin(), index), _table.end() }, true };
         }
     }
@@ -96,7 +110,7 @@ public:
         if (std::get<0>(_table[index])) {
             return std::get<1>(_table[index]).view.second;
         } else {
-            return insert_element(index, key, Value());
+            return insert_element(index, make_entry(key, Value()));
         }
     }
 
@@ -142,8 +156,7 @@ public:
         if (new_size > _table.size()) {
 
             table_type new_table(
-                next_prime(std::ceil(new_size / load_factor())),
-                empty_slot_factory());
+                next_prime(std::ceil(new_size / load_factor())));
             new_table.swap(_table);
             _max_element_count = load_factor() * _table.size();
             _element_count = 0;
@@ -158,11 +171,11 @@ public:
     }
 
 private:
-    Value& insert_element(size_type index, Key key, Value value) {
+    template <typename Entry>
+    Value& insert_element(size_type index, Entry&& new_entry) {
         rehash();
 
-        _table[index] = std::make_tuple(
-            true, std::make_pair(std::move(key), std::move(value)));
+        _table[index] = std::forward<Entry>(new_entry);
         ++_element_count;
 
         return std::get<1>(_table[index]).view.second;
@@ -194,8 +207,15 @@ private:
         return _hasher(key) % _table.size();
     }
 
+    template <typename... Args>
+    entry_type make_entry(Args&&... args) const {
+        return std::make_tuple(
+            true, detail::key_value<Key, Value>(std::forward<Args>(args)...));
+    }
+
     entry_type empty_slot_factory() const {
-        return std::make_tuple(false, std::make_pair(Key(), Value()));
+        return std::make_tuple(false,
+                               detail::key_value<Key, Value>(Key(), Value()));
     }
 
     size_type initial_size() const { return next_prime(8); }

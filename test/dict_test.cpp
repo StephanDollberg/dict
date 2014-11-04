@@ -51,15 +51,51 @@ TEST_CASE("dict operator[]", "[dict][operator[]]") {
 TEST_CASE("dict insert", "[dict][insert]") {
     SECTION("insert(value_type)") {
         boost::dict<int, int> d;
-        auto res_success = d.insert(std::make_pair(1,2));
+        auto res_success = d.insert(std::make_pair(1, 2));
         CHECK(res_success.first->first == 1);
         CHECK(res_success.first->second == 2);
         CHECK(res_success.second == true);
         CHECK(d[1] == 2);
 
-        auto res_fail = d.insert(std::make_pair(1,2));
+        auto res_fail = d.insert(std::make_pair(1, 2));
         CHECK(res_fail.first->first == 1);
         CHECK(res_fail.first->second == 2);
+        CHECK(res_fail.second == false);
+    }
+}
+
+struct only_moveable {
+    only_moveable() = default;
+    only_moveable(const only_moveable&) = delete;
+    only_moveable& operator=(const only_moveable&) = delete;
+    only_moveable(only_moveable&&) = default;
+    only_moveable& operator=(only_moveable&&) = default;
+};
+
+TEST_CASE("dict emplace", "[dict][insert]") {
+    SECTION("emplace") {
+
+        boost::dict<int, int> d;
+        auto res_success = d.emplace(1, 2);
+        CHECK(res_success.first->first == 1);
+        CHECK(res_success.first->second == 2);
+        CHECK(res_success.second == true);
+        CHECK(d[1] == 2);
+
+        auto res_fail = d.emplace(1, 2);
+        CHECK(res_fail.first->first == 1);
+        CHECK(res_fail.first->second == 2);
+        CHECK(res_fail.second == false);
+    }
+
+    SECTION("emplace moveable") {
+        boost::dict<int, only_moveable> d;
+        auto res_success = d.emplace(1, only_moveable());
+        CHECK(res_success.first->first == 1);
+        CHECK(res_success.second == true);
+
+        auto res_fail = d.emplace(1, only_moveable());
+        CHECK(res_fail.first->first == 1);
         CHECK(res_fail.second == false);
     }
 }
@@ -193,6 +229,8 @@ TEST_CASE("dict iteration", "[dict][iter]") {
 
     SECTION("const key") {
         boost::dict<int, int> d;
-        static_assert(std::is_same<const int, decltype(d.begin()->first)>::value, "no const key");
+        static_assert(
+            std::is_same<const int, decltype(d.begin()->first)>::value,
+            "no const key");
     }
 }
