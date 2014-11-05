@@ -111,7 +111,6 @@ struct only_moveable {
 
 TEST_CASE("dict emplace", "[dict][insert]") {
     SECTION("emplace") {
-
         boost::dict<int, int> d;
         auto res_success = d.emplace(1, 2);
         CHECK(res_success.first->first == 1);
@@ -137,7 +136,19 @@ TEST_CASE("dict emplace", "[dict][insert]") {
     }
 }
 
-TEST_CASE("dict lookup", "[dict][lookup]") {}
+TEST_CASE("dict find", "[dict][find]") {
+    SECTION("simple find") {
+        boost::dict<int, int> d;
+        auto fail_find = d.find(0);
+        CHECK(fail_find == d.end());
+
+        d[0] = 42;
+
+        auto success_find = d.find(0);
+        CHECK(success_find->first == 0);
+        CHECK(success_find->second == 42);
+    }
+}
 
 TEST_CASE("dict exists", "[dict][exists]") {}
 

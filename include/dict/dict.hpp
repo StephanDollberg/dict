@@ -104,6 +104,27 @@ public:
         }
     }
 
+    iterator find(const Key& key) {
+        auto index = find_index(key);
+
+        if (std::get<0>(_table[index])) {
+            return { std::next(_table.begin(), index), _table.end() };
+        } else {
+            return end();
+        }
+    }
+
+    const_iterator find(const Key& key) const {
+        auto index = find_index(key);
+
+        if (std::get<0>(_table[index])) {
+            return { std::next(_table.begin(), index), _table.end() };
+        } else {
+            return end();
+        }
+    }
+
+
     Value& operator[](const Key& key) {
         auto index = find_index(key);
 
@@ -216,9 +237,7 @@ private:
         return index;
     }
 
-    bool check_rehash() const {
-        return size() >= _max_element_count;
-    }
+    bool check_rehash() const { return size() >= _max_element_count; }
 
     size_type hash_index(const Key& key) {
         return _hasher(key) % _table.size();
