@@ -86,6 +86,18 @@ TEST_CASE("dict rehash", "[dict][rehash]") {
         CHECK(d[42] == 42);
 
     }
+
+    SECTION("max_load_factor == 1") {
+        boost::dict<int, int, big_hash> d;
+        d.max_load_factor(1.0);
+
+        // 11 is starting table size
+        for(int i = 0; i != 11; ++i) {
+            d[i] = i;
+        }
+
+        CHECK(d[10] == 10);
+    }
 }
 
 struct only_moveable {

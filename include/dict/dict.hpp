@@ -160,7 +160,9 @@ public:
 
     void max_load_factor(float new_max_load_factor) {
         _max_element_count = std::ceil(new_max_load_factor * _table.size());
-        rehash();
+        if (check_rehash()) {
+            rehash();
+        }
     }
 
     void reserve(std::size_t new_size) {
@@ -182,21 +184,20 @@ public:
         }
     }
 
-    void rehash() {
-        if (size() > _max_element_count) {
-            reserve(2 * _table.size());
-        }
-    }
+    void rehash() { reserve(2 * _table.size()); }
 
-    bool next_is_rehash() const { return size() > _max_element_count; }
+    bool next_is_rehash() const { return size() + 1 >= _max_element_count; }
 
 private:
     template <typename Entry>
     Value& insert_element(size_type index, Entry&& new_entry) {
-        rehash();
-
         _table[index] = std::forward<Entry>(new_entry);
         ++_element_count;
+
+        if (check_rehash()) {
+            rehash();
+            index = find_index(std::get<1>(new_entry).view.first);
+        }
 
         return std::get<1>(_table[index]).view.second;
     }
@@ -213,6 +214,10 @@ private:
         }
 
         return index;
+    }
+
+    bool check_rehash() const {
+        return size() >= _max_element_count;
     }
 
     size_type hash_index(const Key& key) {
