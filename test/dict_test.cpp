@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include <future>
+#include <numeric>
 
 struct fake_hasher {
     std::size_t operator()(int) const { return 42; }
@@ -159,7 +160,7 @@ TEST_CASE("dict resize", "[dict][exists]") {
     CHECK(d[2345] == test_string);
 }
 
-TEST_CASE("dict stress", "[dict][stress]") {
+TEST_CASE("dict insert 1000", "[dict][stress]") {
     boost::dict<int, int> d;
     CHECK(d.size() == 0);
 
@@ -167,9 +168,11 @@ TEST_CASE("dict stress", "[dict][stress]") {
         d[i] = i;
     }
 
-    for (int i = 0; i != 1000; ++i) {
-        CHECK(d[i] == i);
+    int res = 0;
+    for(auto&& e: d) {
+        res += e.second;
     }
+    CHECK(res == 999 * 1000 / 2);
 }
 
 TEST_CASE("dict clear", "[dict][clear]") {
