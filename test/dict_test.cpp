@@ -6,6 +6,7 @@
 #include <string>
 #include <future>
 #include <numeric>
+#include <memory>
 
 struct fake_hasher {
     std::size_t operator()(int) const { return 42; }
@@ -140,8 +141,21 @@ TEST_CASE("dict lookup", "[dict][lookup]") {}
 
 TEST_CASE("dict exists", "[dict][exists]") {}
 
-TEST_CASE("dict delete", "[dict][delete]") {
-    SECTION("simple delete") {
+struct destructor_check {
+    destructor_check() = default;
+    destructor_check(std::shared_ptr<bool> ptr) : _ptr(ptr) {}
+
+    ~destructor_check() {
+        if(_ptr) {
+            *_ptr = true;
+        }
+    }
+
+    std::shared_ptr<bool> _ptr;
+};
+
+TEST_CASE("dict erase", "[dict][erase]") {
+    SECTION("simple erase") {
         boost::dict<int, std::string> d;
 
         std::string test_string = "hello";
@@ -154,6 +168,16 @@ TEST_CASE("dict delete", "[dict][delete]") {
 
         CHECK(d.erase(2345) == 1);
         CHECK(d.erase(2345) == 0);
+    }
+
+    SECTION("erase check destructor") {
+        boost::dict<int, destructor_check> d;
+        auto ptr = std::make_shared<bool>(false);
+        d[0] = destructor_check(ptr);
+
+        d.erase(0);
+
+        CHECK(*ptr == true);
     }
 }
 
