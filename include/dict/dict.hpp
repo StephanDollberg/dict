@@ -41,7 +41,7 @@ public:
 
     dict()
         : _table(initial_size()), _element_count(0),
-          _max_element_count(load_factor() * _table.size()) {}
+          _max_element_count(initial_load_factor() * _table.size()) {}
 
     iterator begin() noexcept {
         return { _table.begin(), _table.end() };
@@ -152,13 +152,25 @@ public:
         return 1;
     }
 
+    float load_factor() const { return _element_count / float(_table.size()); }
+
+    float max_load_factor() const {
+        return _max_element_count / float(_table.size());
+    }
+
+    void max_load_factor(float new_max_load_factor) {
+        _max_element_count = std::ceil(new_max_load_factor * _table.size());
+        rehash();
+    }
+
     void reserve(std::size_t new_size) {
         if (new_size > _table.size()) {
+            auto old_load_factor = max_load_factor();
 
             table_type new_table(
-                next_prime(std::ceil(new_size / load_factor())));
+                next_prime(std::ceil(new_size / old_load_factor)));
             new_table.swap(_table);
-            _max_element_count = load_factor() * _table.size();
+            _max_element_count = old_load_factor * _table.size();
             _element_count = 0;
 
             for (auto&& e : new_table) {
@@ -169,6 +181,14 @@ public:
             }
         }
     }
+
+    void rehash() {
+        if (size() > _max_element_count) {
+            reserve(2 * _table.size());
+        }
+    }
+
+    bool next_is_rehash() const { return size() > _max_element_count; }
 
 private:
     template <typename Entry>
@@ -195,14 +215,6 @@ private:
         return index;
     }
 
-    void rehash() {
-        if (size() > _max_element_count) {
-            reserve(2 * _table.size());
-        }
-    }
-
-    double load_factor() const { return 0.7; }
-
     size_type hash_index(const Key& key) {
         return _hasher(key) % _table.size();
     }
@@ -219,6 +231,8 @@ private:
     }
 
     size_type initial_size() const { return next_prime(8); }
+
+    constexpr float initial_load_factor() const { return 0.7; }
 
     hasher _hasher;
     key_equal _key_equal;
