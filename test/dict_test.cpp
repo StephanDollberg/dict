@@ -64,6 +64,29 @@ TEST_CASE("dict insert", "[dict][insert]") {
     }
 }
 
+struct big_hash {
+    std::size_t operator()(int x) const {
+        return 1000000 + x;
+    }
+};
+
+TEST_CASE("dict rehash", "[dict][rehash]") {
+    SECTION("insert rehash") {
+        boost::dict<int, int, big_hash> d;
+        d[1] = 42;
+
+        int i = 0;
+        while(!d.next_is_rehash()) {
+            d[i] = i;
+            ++i;
+        }
+
+        d[42] = 42;
+        CHECK(d[42] == 42);
+
+    }
+}
+
 struct only_moveable {
     only_moveable() = default;
     only_moveable(const only_moveable&) = delete;
