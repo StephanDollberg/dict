@@ -93,7 +93,8 @@ public:
     }
 
     template <typename... Args>
-    std::pair<iterator, bool> emplace_hint(const_iterator /* hint */, Args&&... args) {
+    std::pair<iterator, bool> emplace_hint(const_iterator /* hint */,
+                                           Args&&... args) {
         return emplace(std::forward<Args>(args)...);
     }
 
@@ -132,7 +133,7 @@ public:
     Value& at(const Key& key) {
         auto index = find_index(key);
 
-        if(std::get<0>(_table[index])) {
+        if (std::get<0>(_table[index])) {
             return std::get<1>(_table[index]).view.second;
         }
 
@@ -142,22 +143,21 @@ public:
     const Value& at(const Key& key) const {
         auto index = find_index(key);
 
-        if(std::get<0>(_table[index])) {
+        if (std::get<0>(_table[index])) {
             return std::get<1>(_table[index]).view.second;
         }
 
         throw std::out_of_range("Key not in dict");
     }
 
-    size_type count(const Key& key) const {
-        return find(key) == end() ? 0 : 1;
-    }
+    size_type count(const Key& key) const { return find(key) == end() ? 0 : 1; }
 
     std::pair<iterator, iterator> equal_range(const Key& key) {
         return { find(key), end() };
     }
 
-    std::pair<const_iterator, const_iterator> equal_range(const Key& key) const {
+    std::pair<const_iterator, const_iterator>
+    equal_range(const Key& key) const {
         return { find(key), end() };
     }
 
@@ -244,6 +244,10 @@ public:
     void rehash() { reserve(2 * _table.size()); }
 
     bool next_is_rehash() const { return size() + 1 >= _max_element_count; }
+
+    hasher hash_function() const { return _hasher; }
+
+    key_equal key_eq() const { return _key_equal; }
 
 private:
     template <typename Entry>
