@@ -39,12 +39,14 @@ public:
     typedef detail::dict_iterator<Key, Value> iterator;
     typedef detail::const_dict_iterator<Key, Value> const_iterator;
 
-    dict()
-        : _table(initial_size()), _element_count(0),
-          _max_element_count(initial_load_factor() * _table.size()) {}
+    dict() : dict(initial_size()) {}
+
+    explicit dict(size_type initial_size)
+        : _table(next_prime(std::ceil(initial_size / initial_load_factor()))),
+          _element_count(0), _max_element_count(initial_size) {}
 
     dict(std::initializer_list<value_type> init) : dict() {
-        for(auto&& e: init) {
+        for (auto&& e : init) {
             insert(e);
         }
     }
