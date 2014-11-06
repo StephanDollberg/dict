@@ -178,6 +178,22 @@ TEST_CASE("dict count", "[dict][count]") {
         CHECK(d.count(0) == 1);
 }
 
+TEST_CASE("equal range", "[dict][equal_range]") {
+    boost::dict<int, int> d;
+    d[0] = 1;
+
+    auto range_fail = d.equal_range(42);
+    for(auto iter = range_fail.first; iter != range_fail.second; ++iter) {
+        CHECK(false);
+    }
+
+    auto range_success = d.equal_range(0);
+    for(auto iter = range_success.first; iter != range_success.second; ++iter) {
+        CHECK(iter->first == 0);
+        CHECK(iter->second == 1);
+    }
+}
+
 TEST_CASE("dict exists", "[dict][exists]") {}
 
 struct destructor_check {

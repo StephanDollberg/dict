@@ -153,6 +153,14 @@ public:
         return find(key) == end() ? 0 : 1;
     }
 
+    std::pair<iterator, iterator> equal_range(const Key& key) {
+        return { find(key), end() };
+    }
+
+    std::pair<const_iterator, const_iterator> equal_range(const Key& key) const {
+        return { find(key), end() };
+    }
+
     Value& operator[](const Key& key) {
         auto index = find_index(key);
 
