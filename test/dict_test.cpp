@@ -134,6 +134,16 @@ TEST_CASE("dict emplace", "[dict][insert]") {
         CHECK(res_fail.first->first == 1);
         CHECK(res_fail.second == false);
     }
+
+    SECTION("emplace hint") {
+        boost::dict<int, int> d;
+        d[1] = 0;
+        auto hint = d.find(1);
+        auto res_fail = d.emplace_hint(hint, 1, 2);
+        CHECK(res_fail.first->first == 1);
+        CHECK(res_fail.first->second == 0);
+        CHECK(res_fail.second == false);
+    }
 }
 
 TEST_CASE("dict find", "[dict][find]") {
