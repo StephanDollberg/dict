@@ -149,6 +149,10 @@ public:
         throw std::out_of_range("Key not in dict");
     }
 
+    size_type count(const Key& key) const {
+        return find(key) == end() ? 0 : 1;
+    }
+
     Value& operator[](const Key& key) {
         auto index = find_index(key);
 
@@ -247,7 +251,7 @@ private:
         return std::get<1>(_table[index]).view.second;
     }
 
-    size_type find_index(const Key& key) {
+    size_type find_index(const Key& key) const {
         auto index = hash_index(key);
 
         while (std::get<0>(_table[index])) {
@@ -263,7 +267,7 @@ private:
 
     bool check_rehash() const { return size() >= _max_element_count; }
 
-    size_type hash_index(const Key& key) {
+    size_type hash_index(const Key& key) const {
         return _hasher(key) % _table.size();
     }
 

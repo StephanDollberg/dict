@@ -169,6 +169,15 @@ TEST_CASE("dict at", "[dict][at]") {
     }
 }
 
+TEST_CASE("dict count", "[dict][count]") {
+        boost::dict<int, int> d;
+        CHECK(d.count(0) == 0);
+
+        d[0] = 1;
+
+        CHECK(d.count(0) == 1);
+}
+
 TEST_CASE("dict exists", "[dict][exists]") {}
 
 struct destructor_check {
