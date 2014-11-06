@@ -8,6 +8,20 @@
 #include <numeric>
 #include <memory>
 
+
+TEST_CASE("dict constructor", "[dict][constructor]") {
+    SECTION("default") {
+        boost::dict<int, std::string> d;
+    }
+
+    SECTION("init list") {
+        boost::dict<int, int> d{{1,2}, {3,4}};
+
+        CHECK(d[1] == 2);
+        CHECK(d[3] == 4);
+    }
+}
+
 struct fake_hasher {
     std::size_t operator()(int) const { return 42; }
 };

@@ -43,6 +43,12 @@ public:
         : _table(initial_size()), _element_count(0),
           _max_element_count(initial_load_factor() * _table.size()) {}
 
+    dict(std::initializer_list<value_type> init) : dict() {
+        for(auto&& e: init) {
+            insert(e);
+        }
+    }
+
     iterator begin() noexcept {
         return { _table.begin(), _table.end() };
     }
