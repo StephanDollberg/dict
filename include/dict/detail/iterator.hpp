@@ -25,8 +25,14 @@ public:
         }
     }
 
+    template <typename Other, typename OtherIter>
+    dict_iterator_base(const dict_iterator_base<Other, OtherIter>& other)
+        : _ptr(other._ptr), _end(other._end) {}
+
 private:
     friend class boost::iterator_core_access;
+    template <typename, typename>
+    friend class dict_iterator_base;
 
     void increment() {
         while (_ptr != _end) {
@@ -37,8 +43,8 @@ private:
         }
     }
 
-    // template<typename OtherValue>
-    bool equal(const dict_iterator_base<value_type, Iter>& other) const {
+    template <typename OtherValue, typename OtherIter>
+    bool equal(const dict_iterator_base<OtherValue, OtherIter>& other) const {
         return this->_ptr == other._ptr;
     }
 
