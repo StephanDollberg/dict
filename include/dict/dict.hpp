@@ -129,6 +129,25 @@ public:
         }
     }
 
+    Value& at(const Key& key) {
+        auto index = find_index(key);
+
+        if(std::get<0>(_table[index])) {
+            return std::get<1>(_table[index]).view.second;
+        }
+
+        throw std::out_of_range("Key not in dict");
+    }
+
+    const Value& at(const Key& key) const {
+        auto index = find_index(key);
+
+        if(std::get<0>(_table[index])) {
+            return std::get<1>(_table[index]).view.second;
+        }
+
+        throw std::out_of_range("Key not in dict");
+    }
 
     Value& operator[](const Key& key) {
         auto index = find_index(key);

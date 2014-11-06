@@ -160,6 +160,15 @@ TEST_CASE("dict find", "[dict][find]") {
     }
 }
 
+TEST_CASE("dict at", "[dict][at]") {
+    SECTION("at") {
+        boost::dict<int, int> d;
+        d[0] = 1;
+        CHECK(d.at(0) == 1);
+        CHECK_THROWS_AS(d.at(42), std::out_of_range);
+    }
+}
+
 TEST_CASE("dict exists", "[dict][exists]") {}
 
 struct destructor_check {
