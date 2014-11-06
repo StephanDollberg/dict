@@ -41,9 +41,17 @@ public:
 
     dict() : dict(initial_size()) {}
 
-    explicit dict(size_type initial_size)
-        : _table(next_prime(std::ceil(initial_size / initial_load_factor()))),
-          _element_count(0), _max_element_count(initial_size) {}
+    explicit dict(size_type initial_size, const Hasher& hash = Hasher(),
+                  const KeyEqual& key_equal = KeyEqual(),
+                  const Allocator& alloc = Allocator())
+        : _table(alloc), _element_count(0), _max_element_count(initial_size),
+          _hasher(hash), _key_equal(key_equal) {
+        // we need to do this manually because only as of C++14 there is
+        // explicit vector( size_type count, const Allocator& alloc =
+        // Allocator() );
+        _table.resize(
+            next_prime(std::ceil(initial_size / initial_load_factor())));
+    }
 
     dict(std::initializer_list<value_type> init) : dict() {
         for (auto&& e : init) {
@@ -306,11 +314,11 @@ private:
 
     constexpr float initial_load_factor() const { return 0.7; }
 
-    hasher _hasher;
-    key_equal _key_equal;
     table_type _table;
     size_type _element_count;
     size_type _max_element_count;
+    hasher _hasher;
+    key_equal _key_equal;
 };
 
 } // namespace boost

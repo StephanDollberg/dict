@@ -24,14 +24,17 @@ union key_value {
 
     key_value(const key_value& other) : const_view(other.const_view) {}
 
-    key_value(key_value&& other) : view(std::move(other.view)) {}
+    key_value(key_value&& other)
+    noexcept(std::is_nothrow_move_constructible<internal_value_type>::value)
+        : view(std::move(other.view)) {}
 
     key_value& operator=(const key_value& other) {
         view = other.const_view;
         return *this;
     }
 
-    key_value& operator=(key_value&& other) {
+    key_value& operator=(key_value&& other) noexcept(
+        std::is_nothrow_move_assignable<internal_value_type>::value) {
         view = std::move(other.view);
         return *this;
     }
