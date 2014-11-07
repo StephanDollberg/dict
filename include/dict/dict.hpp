@@ -53,11 +53,44 @@ public:
             next_prime(std::ceil(initial_size / initial_load_factor())));
     }
 
-    dict(std::initializer_list<value_type> init) : dict() {
-        for (auto&& e : init) {
-            insert(e);
+    explicit dict(const Allocator& alloc)
+        : dict(initial_size(), Hasher(), KeyEqual(), alloc) {}
+
+    template <typename Iter>
+    dict(Iter begin, Iter end, size_type /* dummy_initial_size */ = 0,
+         const Hasher& hash = Hasher(), const KeyEqual& key_equal = KeyEqual(),
+         const Allocator& alloc = Allocator())
+        : dict(initial_size(), hash, key_equal, alloc) {
+        for (auto iter = begin; iter != end; ++iter) {
+            emplace(iter->first, iter->second);
         }
     }
+
+    template <typename Iter>
+    dict(Iter begin, Iter end, size_type initial_size, const Allocator& alloc)
+        : dict(begin, end, initial_size, Hasher(), KeyEqual(), alloc) {}
+
+    template <typename Iter>
+    dict(Iter begin, Iter end, size_type initial_size, const Hasher& hasher,
+         const Allocator& alloc)
+        : dict(begin, end, initial_size, hasher, KeyEqual(), alloc) {}
+
+    dict(std::initializer_list<value_type> init,
+         size_type /* dummy_initial_size */ = 0, const Hasher& hash = Hasher(),
+         const KeyEqual& key_equal = KeyEqual(),
+         const Allocator& alloc = Allocator())
+        : dict(init.begin(), init.end(), initial_size(), hash, key_equal,
+               alloc) {}
+
+    dict(std::initializer_list<value_type> init, size_type initial_size,
+         const Allocator& alloc)
+        : dict(init.begin(), init.end(), initial_size(), Hasher(), KeyEqual(),
+               alloc) {}
+
+    dict(std::initializer_list<value_type> init, size_type initial_size,
+         const Hasher& hasher, const Allocator& alloc)
+        : dict(init.begin(), init.end(), initial_size(), hasher, KeyEqual(),
+               alloc) {}
 
     iterator begin() noexcept {
         return { _table.begin(), _table.end() };
