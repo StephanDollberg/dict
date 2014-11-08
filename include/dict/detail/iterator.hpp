@@ -20,7 +20,7 @@ class dict_iterator_base
 public:
     dict_iterator_base() : _ptr(), _end() {}
     dict_iterator_base(Iter p, Iter end) : _ptr(p), _end(end) {
-        if (!std::get<0>(*_ptr)) {
+        if (_ptr != _end && !std::get<0>(*_ptr)) {
             increment();
         }
     }
@@ -35,12 +35,10 @@ private:
     friend class dict_iterator_base;
 
     void increment() {
-        while (_ptr != _end) {
+        do {
             ++_ptr;
-            if (std::get<0>(*_ptr)) {
-                break;
-            }
-        }
+        } while(_ptr != _end && !std::get<0>(*_ptr));
+
     }
 
     template <typename OtherValue, typename OtherIter>
