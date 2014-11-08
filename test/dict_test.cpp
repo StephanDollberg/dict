@@ -14,8 +14,17 @@ TEST_CASE("dict constructor", "[dict][constructor]") {
         boost::dict<int, std::string> d;
     }
 
+    SECTION("iterators") {
+        std::vector<std::pair<int, int>> v{{1, 2}, {3, 4}, {1, 42}};
+
+        boost::dict<int, int> d(v.begin(), v.end());
+
+        CHECK(d[1] == 2);
+        CHECK(d[3] == 4);
+    }
+
     SECTION("init list") {
-        boost::dict<int, int> d{{1,2}, {3,4}};
+        boost::dict<int, int> d{{1, 2}, {3, 4}, {1, 42}};
 
         CHECK(d[1] == 2);
         CHECK(d[3] == 4);
