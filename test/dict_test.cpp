@@ -169,6 +169,35 @@ TEST_CASE("dict emplace", "[dict][insert]") {
     }
 }
 
+TEST_CASE("dict swap", "[dict][swap]") {
+    SECTION("swap member") {
+        boost::dict<int, int> d;
+        d[0] = 42;
+
+        boost::dict<int, int> empty_dict;
+        d.swap(empty_dict);
+
+        CHECK(d.size() == 0);
+        CHECK(empty_dict.size() == 1);
+        CHECK(d[0] == 0);
+        CHECK(empty_dict[0] == 42);
+    }
+    SECTION("adl swap") {
+        using namespace boost;
+
+        boost::dict<int, int> d;
+        d[0] = 42;
+
+        boost::dict<int, int> empty_dict;
+        std::swap(d, empty_dict);
+
+        CHECK(d.size() == 0);
+        CHECK(empty_dict.size() == 1);
+        CHECK(d[0] == 0);
+        CHECK(empty_dict[0] == 42);
+    }
+}
+
 TEST_CASE("dict find", "[dict][find]") {
     SECTION("simple find") {
         boost::dict<int, int> d;

@@ -159,6 +159,15 @@ public:
         }
     }
 
+    void swap(dict<Key, Value, Hasher, KeyEqual, Allocator>& other) {
+        using std::swap;
+        swap(_table, other._table);
+        swap(_element_count, other._element_count);
+        swap(_max_element_count, other._max_element_count);
+        swap(_key_equal, other._key_equal);
+        swap(_hasher, other._hasher);
+    }
+
     iterator find(const Key& key) {
         auto index = find_index(key);
 
@@ -353,6 +362,13 @@ private:
     hasher _hasher;
     key_equal _key_equal;
 };
+
+template <typename Key, typename Value, typename Hasher, typename KeyEqual,
+          typename Allocator>
+void swap(dict<Key, Value, Hasher, KeyEqual, Allocator>& A,
+          dict<Key, Value, Hasher, KeyEqual, Allocator>& B) {
+    A.swap(B);
+}
 
 } // namespace boost
 
