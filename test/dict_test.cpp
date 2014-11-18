@@ -103,6 +103,14 @@ TEST_CASE("dict insert", "[dict][insert]") {
         CHECK(res_fail.second == false);
     }
 
+    SECTION("hinted insert(value_type)") {
+        // TODO
+    }
+
+    SECTION("hinted insert(value_type&&)") {
+        // TODO
+    }
+
     SECTION("insert(iter, iter)") {
         std::vector<std::pair<int, int>> v{{1,2}, {3,4}};
 

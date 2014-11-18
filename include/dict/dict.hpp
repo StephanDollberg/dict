@@ -158,14 +158,27 @@ public:
         }
     }
 
-    template <typename P, typename = typename std::enable_if<std::is_constructible<
-                              value_type, P&&>::value>::type>
+    template <typename P,
+              typename = typename std::enable_if<
+                  std::is_constructible<value_type, P&&>::value>::type>
     std::pair<iterator, bool> insert(P&& value) {
         return emplace(std::forward<P>(value));
     }
 
-    template <typename Iter>
-    void insert(Iter begin, Iter end) {
+    std::pair<iterator, bool> insert(const_iterator /* hint */,
+                                     const value_type& obj) {
+        return insert(obj);
+    }
+
+    template <typename P,
+              typename = typename std::enable_if<
+                  std::is_constructible<value_type, P&&>::value>::type>
+    std::pair<iterator, bool> insert(const_iterator hint, P&& value) {
+        return emplace_hint(hint, std::forward<P>(value));
+    }
+
+    template <typename InputIt>
+    void insert(InputIt begin, InputIt end) {
         for (auto iter = begin; iter != end; ++iter) {
             emplace(iter->first, iter->second);
         }
