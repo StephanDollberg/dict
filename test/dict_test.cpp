@@ -88,6 +88,15 @@ TEST_CASE("dict insert", "[dict][insert]") {
         CHECK(res_fail.second == false);
     }
 
+    SECTION("insert(iter, iter)") {
+        std::vector<std::pair<int, int>> v{{1,2}, {3,4}};
+
+        boost::dict<int, int> d;
+        d.insert(v.begin(), v.end());
+        CHECK(d[1] == 2);
+        CHECK(d[3] == 4);
+    }
+
     SECTION("init list") {
         boost::dict<int, int> d;
         d.insert({{1,2}, {3,4}});

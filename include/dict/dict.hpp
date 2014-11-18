@@ -159,10 +159,15 @@ public:
         }
     }
 
-    void insert(std::initializer_list<value_type> init) {
-        for(auto&& elem: init) {
-            emplace(elem.first, elem.second);
+    template<typename Iter>
+    void insert(Iter begin, Iter end) {
+        for(auto iter = begin; iter != end; ++iter) {
+            emplace(iter->first, iter->second);
         }
+    }
+
+    void insert(std::initializer_list<value_type> init) {
+        insert(init.begin(), init.end());
     }
 
     void swap(dict<Key, Value, Hasher, KeyEqual, Allocator>& other) {
