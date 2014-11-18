@@ -142,8 +142,7 @@ public:
     }
 
     template <typename... Args>
-    iterator emplace_hint(const_iterator /* hint */,
-                                           Args&&... args) {
+    iterator emplace_hint(const_iterator /* hint */, Args&&... args) {
         return emplace(std::forward<Args>(args)...).first;
     }
 
@@ -159,9 +158,15 @@ public:
         }
     }
 
-    template<typename Iter>
+    template <typename P, typename = typename std::enable_if<std::is_constructible<
+                              value_type, P&&>::value>::type>
+    std::pair<iterator, bool> insert(P&& value) {
+        return emplace(std::forward<P>(value));
+    }
+
+    template <typename Iter>
     void insert(Iter begin, Iter end) {
-        for(auto iter = begin; iter != end; ++iter) {
+        for (auto iter = begin; iter != end; ++iter) {
             emplace(iter->first, iter->second);
         }
     }

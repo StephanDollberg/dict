@@ -76,6 +76,21 @@ TEST_CASE("dict operator[]", "[dict][operator[]]") {
 TEST_CASE("dict insert", "[dict][insert]") {
     SECTION("insert(value_type)") {
         boost::dict<int, int> d;
+        auto pair = std::make_pair(1, 2);
+        auto res_success = d.insert(pair);
+        CHECK(res_success.first->first == 1);
+        CHECK(res_success.first->second == 2);
+        CHECK(res_success.second == true);
+        CHECK(d[1] == 2);
+
+        auto res_fail = d.insert(pair);
+        CHECK(res_fail.first->first == 1);
+        CHECK(res_fail.first->second == 2);
+        CHECK(res_fail.second == false);
+    }
+
+    SECTION("insert(value_type&&)") {
+        boost::dict<int, int> d;
         auto res_success = d.insert(std::make_pair(1, 2));
         CHECK(res_success.first->first == 1);
         CHECK(res_success.first->second == 2);
