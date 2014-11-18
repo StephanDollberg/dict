@@ -87,6 +87,13 @@ TEST_CASE("dict insert", "[dict][insert]") {
         CHECK(res_fail.first->second == 2);
         CHECK(res_fail.second == false);
     }
+
+    SECTION("init list") {
+        boost::dict<int, int> d;
+        d.insert({{1,2}, {3,4}});
+        CHECK(d[1] == 2);
+        CHECK(d[3] == 4);
+    }
 }
 
 struct big_hash {

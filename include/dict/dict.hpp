@@ -159,6 +159,12 @@ public:
         }
     }
 
+    void insert(std::initializer_list<value_type> init) {
+        for(auto&& elem: init) {
+            emplace(elem.first, elem.second);
+        }
+    }
+
     void swap(dict<Key, Value, Hasher, KeyEqual, Allocator>& other) {
         using std::swap;
         swap(_table, other._table);
