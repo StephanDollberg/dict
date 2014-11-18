@@ -142,9 +142,9 @@ public:
     }
 
     template <typename... Args>
-    std::pair<iterator, bool> emplace_hint(const_iterator /* hint */,
+    iterator emplace_hint(const_iterator /* hint */,
                                            Args&&... args) {
-        return emplace(std::forward<Args>(args)...);
+        return emplace(std::forward<Args>(args)...).first;
     }
 
     std::pair<iterator, bool> insert(const value_type& obj) {
