@@ -49,8 +49,8 @@ public:
         // we need to do this manually because only as of C++14 there is
         // explicit vector( size_type count, const Allocator& alloc =
         // Allocator() );
-        _table.resize(
-            detail::next_power_of_two(std::ceil(initial_size / initial_load_factor())));
+        _table.resize(detail::next_power_of_two(
+            std::ceil(initial_size / initial_load_factor())));
     }
 
     explicit dict(const Allocator& alloc)
@@ -133,11 +133,10 @@ public:
         auto index = find_index(std::get<1>(entry).view.first);
 
         if (std::get<0>(_table[index])) {
-            return { { std::next(_table.begin(), index), _table.end() },
-                     false };
+            return { iterator_from_index(index), false };
         } else {
             insert_element(index, std::move(entry));
-            return { { std::next(_table.begin(), index), _table.end() }, true };
+            return { iterator_from_index(index), true };
         }
     }
 
@@ -150,11 +149,10 @@ public:
         auto index = find_index(obj.first);
 
         if (std::get<0>(_table[index])) {
-            return { { std::next(_table.begin(), index), _table.end() },
-                     false };
+            return { iterator_from_index(index), false };
         } else {
             insert_element(index, make_entry(obj.first, obj.second));
-            return { { std::next(_table.begin(), index), _table.end() }, true };
+            return { iterator_from_index(index), true };
         }
     }
 
@@ -201,7 +199,7 @@ public:
         auto index = find_index(key);
 
         if (std::get<0>(_table[index])) {
-            return { std::next(_table.begin(), index), _table.end() };
+            return iterator_from_index(index);
         } else {
             return end();
         }
@@ -211,7 +209,7 @@ public:
         auto index = find_index(key);
 
         if (std::get<0>(_table[index])) {
-            return { std::next(_table.begin(), index), _table.end() };
+            return iterator_from_index(index);
         } else {
             return end();
         }
@@ -311,12 +309,13 @@ public:
 
     void reserve(std::size_t new_size) {
         if (new_size > _table.size()) {
-            table_type new_table(
-                detail::next_power_of_two(std::ceil(new_size / max_load_factor())));
+            table_type new_table(detail::next_power_of_two(
+                std::ceil(new_size / max_load_factor())));
 
             for (auto&& e : _table) {
                 if (std::get<0>(e)) {
-                    auto new_index = find_index_impl(std::get<1>(e).view.first, new_table);
+                    auto new_index =
+                        find_index_impl(std::get<1>(e).view.first, new_table);
                     new_table[new_index] = std::move_if_noexcept(e);
                 }
             }
@@ -380,7 +379,8 @@ private:
         return next_index_impl(index, _table);
     }
 
-    constexpr size_type next_index_impl(size_type index, const table_type& table) const {
+    constexpr size_type next_index_impl(size_type index,
+                                        const table_type& table) const {
         return (index + 1) & (table.size() - 1);
     }
 
@@ -393,6 +393,14 @@ private:
     entry_type empty_slot_factory() const {
         return std::make_tuple(false,
                                detail::key_value<Key, Value>(Key(), Value()));
+    }
+
+    iterator iterator_from_index(size_type index) {
+        return { std::next(_table.begin(), index), _table.end() };
+    }
+
+    const_iterator iterator_from_index(size_type index) const {
+        return { std::next(_table.begin(), index), _table.end() };
     }
 
     size_type initial_size() const { return detail::next_power_of_two(8); }
