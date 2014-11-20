@@ -3,8 +3,15 @@
 #include "algorithm"
 #include "stdexcept"
 #include "type_traits"
+#include <cmath>
 
 namespace boost {
+
+namespace detail {
+
+std::size_t next_power_of_two(std::size_t value) {
+    return std::pow(2, std::ceil(std::log2(value)));
+}
 
 // handle all next_prime(i) for i in [1, 210), special case 0
 const unsigned small_primes[] = { 0,   2,   3,   5,   7,   11,  13,  17,
@@ -425,5 +432,7 @@ inline size_t next_prime(size_t n) {
         n = L * k0 + indices[in];
     }
 }
+
+} // namespace detail
 
 } // namespace boost

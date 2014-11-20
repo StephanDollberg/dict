@@ -50,7 +50,7 @@ public:
         // explicit vector( size_type count, const Allocator& alloc =
         // Allocator() );
         _table.resize(
-            next_prime(std::ceil(initial_size / initial_load_factor())));
+            detail::next_power_of_two(std::ceil(initial_size / initial_load_factor())));
     }
 
     explicit dict(const Allocator& alloc)
@@ -272,7 +272,7 @@ public:
             _table[index] = empty_slot_factory();
 
             while (true) {
-                delete_index = (delete_index + 1) % _table.size();
+                delete_index = next_index(delete_index);
 
                 if (!std::get<0>(_table[delete_index])) {
                     keep = false;
@@ -314,7 +314,7 @@ public:
             auto old_load_factor = max_load_factor();
 
             table_type new_table(
-                next_prime(std::ceil(new_size / old_load_factor)));
+                detail::next_power_of_two(std::ceil(new_size / old_load_factor)));
             new_table.swap(_table);
             _max_element_count = old_load_factor * _table.size();
             _element_count = 0;
@@ -358,7 +358,7 @@ private:
                 return index;
             }
 
-            index = (index + 1) % _table.size();
+            index = next_index(index);
         }
 
         return index;
@@ -367,7 +367,11 @@ private:
     bool check_rehash() const { return size() >= _max_element_count; }
 
     size_type hash_index(const Key& key) const {
-        return _hasher(key) % _table.size();
+        return _hasher(key) & (_table.size() - 1);
+    }
+
+    constexpr size_type next_index(size_type index) const {
+        return (index + 1) & (_table.size() - 1);
     }
 
     template <typename... Args>
@@ -381,7 +385,7 @@ private:
                                detail::key_value<Key, Value>(Key(), Value()));
     }
 
-    size_type initial_size() const { return next_prime(8); }
+    size_type initial_size() const { return detail::next_power_of_two(8); }
 
     constexpr float initial_load_factor() const { return 0.7; }
 
