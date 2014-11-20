@@ -311,20 +311,18 @@ public:
 
     void reserve(std::size_t new_size) {
         if (new_size > _table.size()) {
-            auto old_load_factor = max_load_factor();
-
             table_type new_table(
-                detail::next_power_of_two(std::ceil(new_size / old_load_factor)));
-            new_table.swap(_table);
-            _max_element_count = old_load_factor * _table.size();
-            _element_count = 0;
+                detail::next_power_of_two(std::ceil(new_size / max_load_factor())));
 
-            for (auto&& e : new_table) {
+            for (auto&& e : _table) {
                 if (std::get<0>(e)) {
-                    (*this)[std::get<1>(e).view.first] =
-                        std::move(std::get<1>(e).view.second);
+                    auto new_index = find_index_impl(std::get<1>(e).view.first, new_table);
+                    new_table[new_index] = std::move_if_noexcept(e);
                 }
             }
+
+            _max_element_count = max_load_factor() * new_table.size();
+            _table.swap(new_table);
         }
     }
 
@@ -351,14 +349,18 @@ private:
     }
 
     size_type find_index(const Key& key) const {
-        auto index = hash_index(key);
+        return find_index_impl(key, _table);
+    }
 
-        while (std::get<0>(_table[index])) {
-            if (_key_equal(std::get<1>(_table[index]).view.first, key)) {
+    size_type find_index_impl(const Key& key, const table_type& table) const {
+        auto index = hash_index_impl(key, table);
+
+        while (std::get<0>(table[index])) {
+            if (_key_equal(std::get<1>(table[index]).view.first, key)) {
                 return index;
             }
 
-            index = next_index(index);
+            index = next_index_impl(index, table);
         }
 
         return index;
@@ -367,11 +369,19 @@ private:
     bool check_rehash() const { return size() >= _max_element_count; }
 
     size_type hash_index(const Key& key) const {
-        return _hasher(key) & (_table.size() - 1);
+        return hash_index_impl(key, _table);
+    }
+
+    size_type hash_index_impl(const Key& key, const table_type& table) const {
+        return _hasher(key) & (table.size() - 1);
     }
 
     constexpr size_type next_index(size_type index) const {
-        return (index + 1) & (_table.size() - 1);
+        return next_index_impl(index, _table);
+    }
+
+    constexpr size_type next_index_impl(size_type index, const table_type& table) const {
+        return (index + 1) & (table.size() - 1);
     }
 
     template <typename... Args>
