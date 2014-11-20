@@ -7,55 +7,62 @@
 #include <random>
 #include <functional>
 
+#ifdef WITH_GOOGLE_BENCH
+#include <sparsehash/dense_hash_map>
+#endif
+
 template <typename Map>
 void insert_test(Map& map) {
     for (int i = 0; i != 10000; ++i) {
         map[i] = i;
     }
-
-    // map[42] = 23;
-    // map[43] = 23;
-    // map[44] = 23;
-    // map[45] = 23;
-    // map[46] = 23;
-    // map[47] = 23;
-    // map[48] = 23;
-    // map[49] = 23;
 }
 
-// #include <bam/timer.hpp>
+NONIUS_BENCHMARK("dict insert", [](nonius::chronometer meter) {
+    boost::dict<int, int> d;
+    d.reserve(1000);
+    meter.measure([&] { insert_test(d); });
+})
 
-// NONIUS_BENCHMARK("dict insert", [](nonius::chronometer meter) {
-//     boost::dict<int, int> d;
-//     d.reserve(1000);
-//     meter.measure([&] {
-//         insert_test(d);
-//     });
-// })
+NONIUS_BENCHMARK("umap insert", [](nonius::chronometer meter) {
+    std::unordered_map<int, int> d;
+    d.reserve(1000);
+    meter.measure([&] { insert_test(d); });
+})
 
-// NONIUS_BENCHMARK("umap insert", [](nonius::chronometer meter) {
-//     std::unordered_map<int, int> d;
-//     d.reserve(1000);
-//     meter.measure([&] {
-//         insert_test(d);
-//     });
-// })
+#ifdef WITH_GOOGLE_BENCH
+NONIUS_BENCHMARK("google insert", [](nonius::chronometer meter) {
+    google::dense_hash_map<int, int> d(1000);
+    d.set_empty_key(0);
+    meter.measure([&] { insert_test(d); });
+})
+#endif
 
-// NONIUS_BENCHMARK("dict update", [](nonius::chronometer meter) {
-//     boost::dict<int, int> d;
-//     d[42] = 1;
-//     meter.measure([&] {
-//         d[42] = 42;
-//     });
-// })
+#ifdef WITH_GOOGLE_BENCH
+template <typename Map>
+Map build_map_google(int size) {
+    Map d;
+    d.set_empty_key(0);
 
-// NONIUS_BENCHMARK("umap update", [](nonius::chronometer meter) {
-//     std::unordered_map<int, int> d;
-//     d[42] = 1;
-//     meter.measure([&] {
-//         d[42] = 42;
-//     });
-// })
+    for (int i = 0; i != size; ++i) {
+        d[i] = i;
+    }
+
+    return d;
+}
+
+template <typename Map>
+Map build_map_google_with_reserve(int size) {
+    Map d(size);
+    d.set_empty_key(0);
+
+    for (int i = 0; i != size; ++i) {
+        d[i] = i;
+    }
+
+    return d;
+}
+#endif
 
 template <typename Map>
 Map build_map(int size) {
@@ -70,8 +77,7 @@ Map build_map(int size) {
 
 template <typename Map>
 Map build_map_with_reserve(int size) {
-    Map d;
-    d.reserve(size);
+    Map d(size);
 
     for (int i = 0; i != size; ++i) {
         d[i] = i;
@@ -81,17 +87,14 @@ Map build_map_with_reserve(int size) {
 }
 
 template <typename Map, typename Generator>
-void lookup_test(Map& map, Generator& gen) {
+int lookup_test(Map& map, Generator& gen) {
+    int res = 0;
     for (std::size_t i = 0; i < 100; i += 1) {
-        map[gen()];
+        res += map[gen()];
     }
+
+    return res;
 }
-
-// #include <sparsehash/dense_hash_map>
-
-// google
-// string key
-// random lookup
 
 const int lookup_test_size = 1000000;
 
@@ -102,7 +105,7 @@ NONIUS_BENCHMARK("dict lookup", [](nonius::chronometer meter) {
     std::mt19937 engine;
     auto gen = std::bind(std::ref(normal), std::ref(engine));
 
-    meter.measure([&, gen] { lookup_test(d, gen); });
+    meter.measure([&, gen] { return lookup_test(d, gen); });
 })
 
 NONIUS_BENCHMARK("umap lookup", [](nonius::chronometer meter) {
@@ -112,8 +115,21 @@ NONIUS_BENCHMARK("umap lookup", [](nonius::chronometer meter) {
     std::mt19937 engine;
     auto gen = std::bind(std::ref(normal), std::ref(engine));
 
-    meter.measure([&, gen] { lookup_test(d, gen); });
+    meter.measure([&, gen] { return lookup_test(d, gen); });
 })
+
+#ifdef WITH_GOOGLE_BENCH
+NONIUS_BENCHMARK("google lookup", [](nonius::chronometer meter) {
+    auto d =
+        build_map_google<google::dense_hash_map<int, int>>(lookup_test_size);
+
+    std::uniform_int_distribution<std::size_t> normal(0, d.size() - 1);
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+
+    meter.measure([&, gen] { return lookup_test(d, gen); });
+})
+#endif
 
 const int build_test_size = 1000;
 
@@ -125,10 +141,112 @@ NONIUS_BENCHMARK("umap build", [] {
     return build_map<std::unordered_map<int, int>>(build_test_size);
 })
 
+#ifdef WITH_GOOGLE_BENCH
+NONIUS_BENCHMARK("google build", [] {
+    return build_map_google<google::dense_hash_map<int, int>>(build_test_size);
+})
+#endif
+
 NONIUS_BENCHMARK("dict build with reserve", [] {
     return build_map_with_reserve<boost::dict<int, int>>(build_test_size);
 })
 
 NONIUS_BENCHMARK("umap build with reserve", [] {
-    return build_map_with_reserve<std::unordered_map<int, int>>(build_test_size);
+    return build_map_with_reserve<std::unordered_map<int, int>>(
+        build_test_size);
 })
+
+#ifdef WITH_GOOGLE_BENCH
+NONIUS_BENCHMARK("google build with reserve", [] {
+    return build_map_google<google::dense_hash_map<int, int>>(build_test_size);
+})
+#endif
+
+template <typename Map>
+Map build_string_map(int size) {
+    Map d;
+
+    for (int i = 0; i != size; ++i) {
+        d[std::to_string(i) + std::to_string(i) + std::to_string(i) +
+          std::to_string(i) + std::to_string(i) + std::to_string(i) +
+          std::to_string(i)] = i;
+    }
+
+    return d;
+}
+
+#ifdef WITH_GOOGLE_BENCH
+template <typename Map>
+Map build_string_map_google(int size) {
+    Map d;
+    d.set_empty_key("");
+
+    for (int i = 0; i != size; ++i) {
+        d[std::to_string(i) + std::to_string(i) + std::to_string(i) +
+          std::to_string(i) + std::to_string(i) + std::to_string(i) +
+          std::to_string(i)] = i;
+    }
+
+    return d;
+}
+#endif
+
+NONIUS_BENCHMARK("dict build with string key", [] {
+    return build_string_map<boost::dict<std::string, int>>(build_test_size);
+})
+
+NONIUS_BENCHMARK("umap build with string key", [] {
+    return build_string_map<std::unordered_map<std::string, int>>(
+        build_test_size);
+})
+
+#ifdef WITH_GOOGLE_BENCH
+NONIUS_BENCHMARK("google build with string key", [] {
+    return build_string_map_google<google::dense_hash_map<std::string, int>>(
+        build_test_size);
+})
+#endif
+
+template <typename Map, typename LookUpKeys>
+int string_lookup_test(Map& map, const LookUpKeys& keys) {
+    int res = 0;
+    for (auto&& k : keys) {
+        res += map[k];
+    }
+
+    return res;
+}
+
+const int string_lookup_test_size = 1000;
+
+NONIUS_BENCHMARK("dict string lookup", [](nonius::chronometer meter) {
+    auto d = build_string_map<boost::dict<std::string, int>>(
+        string_lookup_test_size);
+    std::vector<std::string> keys{ "1111111", "2222222", "3333333",
+                                   "4444444", "5555555", "6666666",
+                                   "7777777", "8888888", "9999999" };
+
+    meter.measure([&] { return string_lookup_test(d, keys); });
+})
+
+NONIUS_BENCHMARK("umap string lookup", [](nonius::chronometer meter) {
+    auto d = build_string_map<std::unordered_map<std::string, int>>(
+        string_lookup_test_size);
+    std::vector<std::string> keys{ "1111111", "2222222", "3333333",
+                                   "4444444", "5555555", "6666666",
+                                   "7777777", "8888888", "9999999" };
+
+    meter.measure([&] { return string_lookup_test(d, keys); });
+})
+
+#ifdef WITH_GOOGLE_BENCH
+NONIUS_BENCHMARK("google string lookup", [](nonius::chronometer meter) {
+    auto d = build_string_map_google<google::dense_hash_map<std::string, int>>(
+        string_lookup_test_size);
+    std::vector<std::string> keys{ "1111111", "2222222", "3333333",
+                                   "4444444", "5555555", "6666666",
+                                   "7777777", "8888888", "9999999" };
+
+    meter.measure([&] { return string_lookup_test(d, keys); });
+})
+#endif
