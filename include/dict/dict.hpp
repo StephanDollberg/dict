@@ -256,43 +256,12 @@ public:
         }
     }
 
-    size_type erase(const Key& key) {
-        auto index = find_index(key);
+    size_type erase(const key_type& key) { return erase_impl(key).first; }
 
-        if (!std::get<0>(_table[index])) {
-            return 0;
-        }
+    iterator erase(const_iterator pos) { return erase_impl(pos->first).second; }
 
-        auto delete_index = index;
-
-        bool keep = true;
-        while (keep) {
-            _table[index] = empty_slot_factory();
-
-            while (true) {
-                delete_index = next_index(delete_index);
-
-                if (!std::get<0>(_table[delete_index])) {
-                    keep = false;
-                    break;
-                }
-
-                auto new_key =
-                    hash_index(std::get<1>(_table[delete_index]).view.first);
-
-                if ((index <= delete_index)
-                        ? ((index < new_key) && (new_key <= delete_index))
-                        : (new_key <= delete_index)) {
-                    continue;
-                }
-
-                _table[index] = std::move(_table[delete_index]);
-                index = delete_index;
-            }
-        }
-
-        return 1;
-    }
+    // we don't support this (yet?)
+    // iterator erase(const_iterator first, const_iterator last) {}
 
     float load_factor() const { return _element_count / float(_table.size()); }
 
@@ -345,6 +314,44 @@ private:
         }
 
         return std::get<1>(_table[index]).view.second;
+    }
+
+    std::pair<size_type, iterator> erase_impl(const Key& key) {
+        auto index = find_index(key);
+
+        if (!std::get<0>(_table[index])) {
+            return { 0, {} };
+        }
+
+        auto delete_index = index;
+
+        bool keep = true;
+        while (keep) {
+            _table[index] = empty_slot_factory();
+
+            while (true) {
+                delete_index = next_index(delete_index);
+
+                if (!std::get<0>(_table[delete_index])) {
+                    keep = false;
+                    break;
+                }
+
+                auto new_key =
+                    hash_index(std::get<1>(_table[delete_index]).view.first);
+
+                if ((index <= delete_index)
+                        ? ((index < new_key) && (new_key <= delete_index))
+                        : (new_key <= delete_index)) {
+                    continue;
+                }
+
+                _table[index] = std::move(_table[delete_index]);
+                index = delete_index;
+            }
+        }
+
+        return { 1, iterator_from_index(index) };
     }
 
     size_type find_index(const Key& key) const {

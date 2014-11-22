@@ -8,6 +8,13 @@
 #include <numeric>
 #include <memory>
 
+struct fake_hasher {
+    std::size_t operator()(int) const { return 42; }
+};
+
+struct identity_hasher {
+    std::size_t operator()(int x) const { return x; }
+};
 
 TEST_CASE("dict constructor", "[dict][constructor]") {
     SECTION("default") {
@@ -31,9 +38,7 @@ TEST_CASE("dict constructor", "[dict][constructor]") {
     }
 }
 
-struct fake_hasher {
-    std::size_t operator()(int) const { return 42; }
-};
+
 
 TEST_CASE("dict operator[]", "[dict][operator[]]") {
     SECTION("simple operator[]") {
@@ -300,19 +305,30 @@ struct destructor_check {
 };
 
 TEST_CASE("dict erase", "[dict][erase]") {
-    SECTION("simple erase") {
+    SECTION("erase(key)") {
         boost::dict<int, std::string> d;
 
         std::string test_string = "hello";
-        d[2345] = test_string;
-        CHECK(d[2345] == test_string);
+        d[1] = test_string;
+        CHECK(d[1] == test_string);
 
-        CHECK(d.erase(2345) == 1);
+        CHECK(d.erase(1) == 1);
 
-        CHECK(d[2345] == "");
+        CHECK(d[1] == "");
 
-        CHECK(d.erase(2345) == 1);
-        CHECK(d.erase(2345) == 0);
+        CHECK(d.erase(1) == 1);
+        CHECK(d.erase(1) == 0);
+    }
+
+    SECTION("erase(iterator)") {
+        boost::dict<int, int, identity_hasher> d;
+
+        d[1] = 2;
+        d[2] = 3;
+        auto iter = d.find(1);
+
+        CHECK(d.erase(iter)->second == 3);
+        CHECK(d[1] == 0);
     }
 
     SECTION("erase check destructor") {
@@ -407,8 +423,7 @@ TEST_CASE("dict iteration", "[dict][iter]") {
     }
 
     SECTION("skip iterator") {
-        // relies on identity hashing for integers
-        boost::dict<int, int> d;
+        boost::dict<int, int, identity_hasher> d;
         d[1] = 1;
         d[3] = 3;
         d[6] = 6;
