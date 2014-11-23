@@ -12,7 +12,9 @@ ifeq ($(UNAME), Darwin)
 	LIBS=
 endif
 
-ARGS= -std=c++11  -g -Wall -W -Wextra -pedantic-errors  $(INCLUDES) $(DEFINES)
+STANDARD=-std=c++11
+
+ARGS= $(STANDARD)  -g -Wall -W -Wextra -pedantic-errors  $(INCLUDES) $(DEFINES)
 
 ifeq ($(CXX),clang++-3.5)
 	ADD_INC_FLAGS = -nostdinc++ -I/usr/local/lib/llvm-3.5/include/c++/v1 -fsanitize=address -fno-omit-frame-pointer
@@ -39,6 +41,9 @@ test_main: $(OBJS)
 
 with_sanitizers: ARGS+= -fsanitize=address
 with_sanitizers: test_main
+
+build14: STANDARD = -std=c++1y
+build14: test_main
 
 test:
 	./test_main
