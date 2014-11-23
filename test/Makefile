@@ -3,9 +3,9 @@ DEFINES=
 UNAME := $(shell uname)
 ifeq ($(UNAME), Linux)
 	ifeq ($(CXX),clang++)
-		LIBS= -fsanitize=address -lc++abi
+		LIBS= -lc++abi
 	else
-		LIBS= -fsanitize=address
+		LIBS=
 	endif
 endif
 ifeq ($(UNAME), Darwin)
@@ -36,6 +36,9 @@ OBJS = $(addprefix ./, $(notdir $(SOURCES:.cpp=.o)))
 
 test_main: $(OBJS)
 	$(CXX) $(standard_library) $(ARGS) $(LDFLAGS) $(OBJS) -o $@ $(LIBS) $(ADD_LIB_FLAGS)
+
+with_sanitizers: ARGS+= -fsanitize=address
+with_sanitizers: test_main
 
 run:
 	./test_main
