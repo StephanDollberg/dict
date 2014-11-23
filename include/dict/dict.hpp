@@ -285,7 +285,8 @@ public:
 
     void reserve(std::size_t new_size) {
         if (new_size > _table.size()) {
-            table_type new_table(detail::next_power_of_two(
+            table_type new_table(_table.get_allocator());
+            new_table.resize(detail::next_power_of_two(
                 std::ceil(new_size / max_load_factor())));
 
             for (auto&& e : _table) {
