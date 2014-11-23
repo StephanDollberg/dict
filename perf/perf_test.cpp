@@ -96,6 +96,41 @@ int lookup_test(Map& map, Generator& gen) {
     return res;
 }
 
+const int small_lookup_test_size = 10;
+
+NONIUS_BENCHMARK("small dict lookup", [](nonius::chronometer meter) {
+    auto d = build_map<boost::dict<int, int>>(small_lookup_test_size);
+
+    std::uniform_int_distribution<std::size_t> normal(0, d.size() - 1);
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+
+    meter.measure([&, gen] { return lookup_test(d, gen); });
+})
+
+NONIUS_BENCHMARK("small umap lookup", [](nonius::chronometer meter) {
+    auto d = build_map<std::unordered_map<int, int>>(small_lookup_test_size);
+
+    std::uniform_int_distribution<std::size_t> normal(0, d.size() - 1);
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+
+    meter.measure([&, gen] { return lookup_test(d, gen); });
+})
+
+#ifdef WITH_GOOGLE_BENCH
+NONIUS_BENCHMARK("small google lookup", [](nonius::chronometer meter) {
+    auto d =
+        build_map_google<google::dense_hash_map<int, int>>(small_lookup_test_size);
+
+    std::uniform_int_distribution<std::size_t> normal(0, d.size() - 1);
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+
+    meter.measure([&, gen] { return lookup_test(d, gen); });
+})
+#endif
+
 const int lookup_test_size = 1000000;
 
 NONIUS_BENCHMARK("dict lookup", [](nonius::chronometer meter) {
