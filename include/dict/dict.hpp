@@ -262,7 +262,7 @@ public:
         if (std::get<0>(_table[index])) {
             return std::get<1>(_table[index]).view.second;
         } else {
-            return insert_element(index, make_entry(key, Value()));
+            return activate_element(index, key);
         }
     }
 
@@ -313,17 +313,29 @@ public:
     key_equal key_eq() const { return _key_equal; }
 
 private:
+    Value& check_expand(size_type index, const Key& key) {
+        if (check_rehash()) {
+            rehash();
+            index = find_index(key);
+        }
+
+        return std::get<1>(_table[index]).view.second;
+    }
+
     template <typename Entry>
     Value& insert_element(size_type index, Entry&& new_entry) {
         _table[index] = std::forward<Entry>(new_entry);
         ++_element_count;
 
-        if (check_rehash()) {
-            rehash();
-            index = find_index(std::get<1>(new_entry).view.first);
-        }
+        return check_expand(index, std::get<1>(new_entry).view.first);
+    }
 
-        return std::get<1>(_table[index]).view.second;
+    Value& activate_element(size_type index, const Key& key) {
+        std::get<0>(_table[index]) = true;
+        std::get<1>(_table[index]).view.first = key;
+        ++_element_count;
+
+        return check_expand(index, key);
     }
 
     std::pair<size_type, iterator> erase_impl(const Key& key) {
