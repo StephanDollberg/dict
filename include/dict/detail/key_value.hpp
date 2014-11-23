@@ -22,12 +22,19 @@ union key_value {
     key_value(Args&&... args)
         : const_view(std::forward<Args>(args)...) {}
 
-    key_value(const key_value& other) : const_view(other.const_view) {}
+    template <typename dummy = value_type,
+              typename = typename std::enable_if<
+                  std::is_copy_constructible<dummy>::value>::type>
+    key_value(const key_value& other)
+        : const_view(other.const_view) {}
 
     key_value(key_value&& other)
     noexcept(std::is_nothrow_move_constructible<internal_value_type>::value)
         : view(std::move(other.view)) {}
 
+    template <typename dummy = value_type,
+              typename = typename std::enable_if<
+                  std::is_copy_assignable<dummy>::value>::type>
     key_value& operator=(const key_value& other) {
         view = other.const_view;
         return *this;
