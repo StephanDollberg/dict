@@ -44,13 +44,23 @@ public:
     explicit dict(size_type initial_size, const Hasher& hash = Hasher(),
                   const KeyEqual& key_equal = KeyEqual(),
                   const Allocator& alloc = Allocator())
-        : _table(alloc), _element_count(0), _max_element_count(initial_size),
-          _hasher(hash), _key_equal(key_equal) {
+        :
+#if __cplusplus >= 201402L
+          _table(detail::next_power_of_two(
+                     std::ceil(initial_size / initial_load_factor())),
+                 alloc),
+#else
+          _table(alloc),
+#endif
+          _element_count(0), _max_element_count(initial_size), _hasher(hash),
+          _key_equal(key_equal) {
+#if __cplusplus < 201402L
         // we need to do this manually because only as of C++14 there is
         // explicit vector( size_type count, const Allocator& alloc =
         // Allocator() );
         _table.resize(detail::next_power_of_two(
             std::ceil(initial_size / initial_load_factor())));
+#endif
     }
 
     explicit dict(const Allocator& alloc)
