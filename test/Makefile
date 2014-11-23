@@ -40,7 +40,7 @@ test_main: $(OBJS)
 with_sanitizers: ARGS+= -fsanitize=address
 with_sanitizers: test_main
 
-run:
+test:
 	./test_main
 
 clean:
