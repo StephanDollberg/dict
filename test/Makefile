@@ -39,7 +39,7 @@ OBJS = $(addprefix ./, $(notdir $(SOURCES:.cpp=.o)))
 test_main: $(OBJS)
 	$(CXX) $(standard_library) $(ARGS) $(LDFLAGS) $(OBJS) -o $@ $(LIBS) $(ADD_LIB_FLAGS)
 
-with_sanitizers: ARGS+= -fsanitize=address
+with_sanitizers: ARGS+= -fsanitize=address -fsanitize=undefined
 with_sanitizers: test_main
 
 build14: STANDARD = -std=c++1y
