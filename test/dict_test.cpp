@@ -242,14 +242,15 @@ TEST_CASE("dict try_emplace", "[dict][try_emplace]") {
     SECTION("try_emplace(key, args)") {
         {
             io::dict<int, int> d;
-            auto res_success = d.try_emplace(1, 2);
+            int test_key = 1;
+            auto res_success = d.try_emplace(test_key, 2);
 
             CHECK(d.size() == 1);
             CHECK(res_success.first->first == 1);
             CHECK(res_success.first->second == 2);
             CHECK(res_success.second == true);
 
-            auto res_fail = d.try_emplace(1, 3);
+            auto res_fail = d.try_emplace(test_key, 3);
 
             CHECK(d.size() == 1);
             CHECK(res_success.first->first == 1);
@@ -261,7 +262,8 @@ TEST_CASE("dict try_emplace", "[dict][try_emplace]") {
         {
             io::dict<int, moved_tester> d;
             moved_tester first_test(2);
-            auto res_success = d.try_emplace(1, std::move(first_test));
+            int test_key = 1;
+            auto res_success = d.try_emplace(test_key, std::move(first_test));
 
             CHECK(d.size() == 1);
             CHECK(res_success.first->first == 1);
@@ -270,7 +272,7 @@ TEST_CASE("dict try_emplace", "[dict][try_emplace]") {
             CHECK(res_success.second == true);
 
             moved_tester second_test(3);
-            auto res_fail = d.try_emplace(1, std::move(second_test));
+            auto res_fail = d.try_emplace(test_key, std::move(second_test));
 
             CHECK(d.size() == 1);
             CHECK(res_success.first->first == 1);
