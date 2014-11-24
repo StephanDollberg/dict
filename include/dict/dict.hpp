@@ -142,7 +142,7 @@ public:
         if (std::get<0>(_table[index])) {
             return { iterator_from_index(index), false };
         } else {
-            insert_element(index, std::move(entry));
+            insert_entry(index, std::move(entry));
             return { iterator_from_index(index), true };
         }
     }
@@ -152,13 +152,49 @@ public:
         return emplace(std::forward<Args>(args)...).first;
     }
 
+    template <class... Args>
+    std::pair<iterator, bool> try_emplace(const key_type& key, Args&&... args) {
+        auto index = find_index(key);
+
+        if (std::get<0>(_table[index])) {
+            return { iterator_from_index(index), false };
+        } else {
+            insert_element(index, value_type(key, std::forward<Args>(args)...));
+            return { iterator_from_index(index), true };
+        }
+    }
+
+    template <class... Args>
+    std::pair<iterator, bool> try_emplace(key_type&& key, Args&&... args) {
+        auto index = find_index(key);
+
+        if (std::get<0>(_table[index])) {
+            return { iterator_from_index(index), false };
+        } else {
+            insert_element(
+                index, value_type(std::move(key), std::forward<Args>(args)...));
+            return { iterator_from_index(index), true };
+        }
+    }
+
+    template <class... Args>
+    iterator try_emplace(const_iterator /* hint */, const key_type& key,
+                         Args&&... args) {
+        return try_emplace(key, std::forward<Args>(args)...).first;
+    }
+
+    template <class... Args>
+    iterator try_emplace(const_iterator /* hint */, key_type&& key, Args&&... args) {
+        return try_emplace(std::move(key), std::forward<Args>(args)...).first;
+    }
+
     std::pair<iterator, bool> insert(const value_type& obj) {
         auto index = find_index(obj.first);
 
         if (std::get<0>(_table[index])) {
             return { iterator_from_index(index), false };
         } else {
-            insert_element(index, make_entry(obj.first, obj.second));
+            insert_entry(index, make_entry(obj.first, obj.second));
             return { iterator_from_index(index), true };
         }
     }
@@ -321,11 +357,20 @@ private:
     }
 
     template <typename Entry>
-    Value& insert_element(size_type index, Entry&& new_entry) {
+    Value& insert_entry(size_type index, Entry&& new_entry) {
         _table[index] = std::forward<Entry>(new_entry);
         ++_element_count;
 
-        return check_expand(index, std::get<1>(new_entry).view.first);
+        return check_expand(index, std::get<1>(_table[index]).view.first);
+    }
+
+    template <typename Element>
+    Value& insert_element(size_type index, Element&& new_element) {
+        std::get<1>(_table[index]) = std::forward<Element>(new_element);
+        std::get<0>(_table[index]) = true;
+        ++_element_count;
+
+        return check_expand(index, std::get<1>(_table[index]).view.first);
     }
 
     Value& activate_element(size_type index, const Key& key) {
