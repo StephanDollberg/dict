@@ -5,7 +5,7 @@
 #include "type_traits"
 #include <cmath>
 
-namespace boost {
+namespace io {
 
 namespace detail {
 
@@ -435,4 +435,4 @@ inline size_t next_prime(size_t n) {
 
 } // namespace detail
 
-} // namespace boost
+} // namespace io

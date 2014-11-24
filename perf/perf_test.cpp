@@ -19,7 +19,7 @@ void insert_test(Map& map) {
 }
 
 NONIUS_BENCHMARK("dict insert", [](nonius::chronometer meter) {
-    boost::dict<int, int> d;
+    io::dict<int, int> d;
     d.reserve(1000);
     meter.measure([&] { insert_test(d); });
 })
@@ -99,7 +99,7 @@ int lookup_test(Map& map, Generator& gen) {
 const int small_lookup_test_size = 10;
 
 NONIUS_BENCHMARK("small dict lookup", [](nonius::chronometer meter) {
-    auto d = build_map<boost::dict<int, int>>(small_lookup_test_size);
+    auto d = build_map<io::dict<int, int>>(small_lookup_test_size);
 
     std::uniform_int_distribution<std::size_t> normal(0, d.size() - 1);
     std::mt19937 engine;
@@ -134,7 +134,7 @@ NONIUS_BENCHMARK("small google lookup", [](nonius::chronometer meter) {
 const int lookup_test_size = 1000000;
 
 NONIUS_BENCHMARK("dict lookup", [](nonius::chronometer meter) {
-    auto d = build_map<boost::dict<int, int>>(lookup_test_size);
+    auto d = build_map<io::dict<int, int>>(lookup_test_size);
 
     std::uniform_int_distribution<std::size_t> normal(0, d.size() - 1);
     std::mt19937 engine;
@@ -169,7 +169,7 @@ NONIUS_BENCHMARK("google lookup", [](nonius::chronometer meter) {
 const int build_test_size = 1000;
 
 NONIUS_BENCHMARK("dict build", [] {
-    return build_map<boost::dict<int, int>>(build_test_size);
+    return build_map<io::dict<int, int>>(build_test_size);
 })
 
 NONIUS_BENCHMARK("umap build", [] {
@@ -183,7 +183,7 @@ NONIUS_BENCHMARK("google build", [] {
 #endif
 
 NONIUS_BENCHMARK("dict build with reserve", [] {
-    return build_map_with_reserve<boost::dict<int, int>>(build_test_size);
+    return build_map_with_reserve<io::dict<int, int>>(build_test_size);
 })
 
 NONIUS_BENCHMARK("umap build with reserve", [] {
@@ -227,7 +227,7 @@ Map build_string_map_google(int size) {
 #endif
 
 NONIUS_BENCHMARK("dict build with string key", [] {
-    return build_string_map<boost::dict<std::string, int>>(build_test_size);
+    return build_string_map<io::dict<std::string, int>>(build_test_size);
 })
 
 NONIUS_BENCHMARK("umap build with string key", [] {
@@ -255,7 +255,7 @@ int string_lookup_test(Map& map, const LookUpKeys& keys) {
 const int string_lookup_test_size = 1000;
 
 NONIUS_BENCHMARK("dict string lookup", [](nonius::chronometer meter) {
-    auto d = build_string_map<boost::dict<std::string, int>>(
+    auto d = build_string_map<io::dict<std::string, int>>(
         string_lookup_test_size);
     std::vector<std::string> keys{ "1111111", "2222222", "3333333",
                                    "4444444", "5555555", "6666666",

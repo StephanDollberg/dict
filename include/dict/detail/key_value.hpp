@@ -3,7 +3,7 @@
 
 #include <utility>
 
-namespace boost {
+namespace io {
 
 namespace detail {
 
@@ -61,6 +61,6 @@ union key_value {
 
 } // detail
 
-} // namespace boost
+} // namespace io
 
 #endif

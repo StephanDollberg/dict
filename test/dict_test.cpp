@@ -18,20 +18,20 @@ struct identity_hasher {
 
 TEST_CASE("dict constructor", "[dict][constructor]") {
     SECTION("default") {
-        boost::dict<int, std::string> d;
+        io::dict<int, std::string> d;
     }
 
     SECTION("iterators") {
         std::vector<std::pair<int, int>> v{{1, 2}, {3, 4}, {1, 42}};
 
-        boost::dict<int, int> d(v.begin(), v.end());
+        io::dict<int, int> d(v.begin(), v.end());
 
         CHECK(d[1] == 2);
         CHECK(d[3] == 4);
     }
 
     SECTION("init list") {
-        boost::dict<int, int> d{{1, 2}, {3, 4}, {1, 42}};
+        io::dict<int, int> d{{1, 2}, {3, 4}, {1, 42}};
 
         CHECK(d[1] == 2);
         CHECK(d[3] == 4);
@@ -42,7 +42,7 @@ TEST_CASE("dict constructor", "[dict][constructor]") {
 
 TEST_CASE("dict operator[]", "[dict][operator[]]") {
     SECTION("simple operator[]") {
-        boost::dict<int, std::string> d;
+        io::dict<int, std::string> d;
         CHECK(d.size() == 0);
 
         std::string test_string = "hello";
@@ -54,7 +54,7 @@ TEST_CASE("dict operator[]", "[dict][operator[]]") {
     }
 
     SECTION("operator[] collision") {
-        boost::dict<int, std::string, fake_hasher> d;
+        io::dict<int, std::string, fake_hasher> d;
 
         std::string test_string = "hello";
         std::string test_string2 = "hello2";
@@ -66,7 +66,7 @@ TEST_CASE("dict operator[]", "[dict][operator[]]") {
     }
 
     SECTION("operator[] overwrite") {
-        boost::dict<int, std::string> d;
+        io::dict<int, std::string> d;
 
         std::string test_string = "hello";
         d[2345] = test_string;
@@ -80,7 +80,7 @@ TEST_CASE("dict operator[]", "[dict][operator[]]") {
 
 TEST_CASE("dict insert", "[dict][insert]") {
     SECTION("insert(value_type)") {
-        boost::dict<int, int> d;
+        io::dict<int, int> d;
         auto pair = std::make_pair(1, 2);
         auto res_success = d.insert(pair);
         CHECK(res_success.first->first == 1);
@@ -95,7 +95,7 @@ TEST_CASE("dict insert", "[dict][insert]") {
     }
 
     SECTION("insert(value_type&&)") {
-        boost::dict<int, int> d;
+        io::dict<int, int> d;
         auto res_success = d.insert(std::make_pair(1, 2));
         CHECK(res_success.first->first == 1);
         CHECK(res_success.first->second == 2);
@@ -119,14 +119,14 @@ TEST_CASE("dict insert", "[dict][insert]") {
     SECTION("insert(iter, iter)") {
         std::vector<std::pair<int, int>> v{{1,2}, {3,4}};
 
-        boost::dict<int, int> d;
+        io::dict<int, int> d;
         d.insert(v.begin(), v.end());
         CHECK(d[1] == 2);
         CHECK(d[3] == 4);
     }
 
     SECTION("init list") {
-        boost::dict<int, int> d;
+        io::dict<int, int> d;
         d.insert({{1,2}, {3,4}});
         CHECK(d[1] == 2);
         CHECK(d[3] == 4);
@@ -141,7 +141,7 @@ struct big_hash {
 
 TEST_CASE("dict rehash", "[dict][rehash]") {
     SECTION("insert rehash") {
-        boost::dict<int, int, big_hash> d;
+        io::dict<int, int, big_hash> d;
         d[1] = 42;
 
         int i = 0;
@@ -156,7 +156,7 @@ TEST_CASE("dict rehash", "[dict][rehash]") {
     }
 
     SECTION("max_load_factor == 1") {
-        boost::dict<int, int, big_hash> d;
+        io::dict<int, int, big_hash> d;
         d.max_load_factor(1.0);
 
         // 11 is starting table size
@@ -178,7 +178,7 @@ struct only_moveable {
 
 TEST_CASE("dict emplace", "[dict][insert]") {
     SECTION("emplace") {
-        boost::dict<int, int> d;
+        io::dict<int, int> d;
         auto res_success = d.emplace(1, 2);
         CHECK(res_success.first->first == 1);
         CHECK(res_success.first->second == 2);
@@ -192,7 +192,7 @@ TEST_CASE("dict emplace", "[dict][insert]") {
     }
 
     SECTION("emplace moveable") {
-        boost::dict<int, only_moveable> d;
+        io::dict<int, only_moveable> d;
         auto res_success = d.emplace(1, only_moveable());
         CHECK(res_success.first->first == 1);
         CHECK(res_success.second == true);
@@ -203,7 +203,7 @@ TEST_CASE("dict emplace", "[dict][insert]") {
     }
 
     SECTION("emplace hint") {
-        boost::dict<int, int> d;
+        io::dict<int, int> d;
         d[1] = 0;
         auto hint = d.find(1);
         auto res = d.emplace_hint(hint, 1, 2);
@@ -214,10 +214,10 @@ TEST_CASE("dict emplace", "[dict][insert]") {
 
 TEST_CASE("dict swap", "[dict][swap]") {
     SECTION("swap member") {
-        boost::dict<int, int> d;
+        io::dict<int, int> d;
         d[0] = 42;
 
-        boost::dict<int, int> empty_dict;
+        io::dict<int, int> empty_dict;
         d.swap(empty_dict);
 
         CHECK(d.size() == 0);
@@ -226,12 +226,12 @@ TEST_CASE("dict swap", "[dict][swap]") {
         CHECK(empty_dict[0] == 42);
     }
     SECTION("adl swap") {
-        using namespace boost;
+        using namespace io;
 
-        boost::dict<int, int> d;
+        io::dict<int, int> d;
         d[0] = 42;
 
-        boost::dict<int, int> empty_dict;
+        io::dict<int, int> empty_dict;
         std::swap(d, empty_dict);
 
         CHECK(d.size() == 0);
@@ -243,7 +243,7 @@ TEST_CASE("dict swap", "[dict][swap]") {
 
 TEST_CASE("dict find", "[dict][find]") {
     SECTION("simple find") {
-        boost::dict<int, int> d;
+        io::dict<int, int> d;
         auto fail_find = d.find(0);
         CHECK(fail_find == d.end());
 
@@ -257,7 +257,7 @@ TEST_CASE("dict find", "[dict][find]") {
 
 TEST_CASE("dict at", "[dict][at]") {
     SECTION("at") {
-        boost::dict<int, int> d;
+        io::dict<int, int> d;
         d[0] = 1;
         CHECK(d.at(0) == 1);
         CHECK_THROWS_AS(d.at(42), std::out_of_range);
@@ -265,7 +265,7 @@ TEST_CASE("dict at", "[dict][at]") {
 }
 
 TEST_CASE("dict count", "[dict][count]") {
-        boost::dict<int, int> d;
+        io::dict<int, int> d;
         CHECK(d.count(0) == 0);
 
         d[0] = 1;
@@ -274,7 +274,7 @@ TEST_CASE("dict count", "[dict][count]") {
 }
 
 TEST_CASE("equal range", "[dict][equal_range]") {
-    boost::dict<int, int> d;
+    io::dict<int, int> d;
     d[0] = 1;
 
     auto range_fail = d.equal_range(42);
@@ -306,7 +306,7 @@ struct destructor_check {
 
 TEST_CASE("dict erase", "[dict][erase]") {
     SECTION("erase(key)") {
-        boost::dict<int, std::string> d;
+        io::dict<int, std::string> d;
 
         std::string test_string = "hello";
         d[1] = test_string;
@@ -321,7 +321,7 @@ TEST_CASE("dict erase", "[dict][erase]") {
     }
 
     SECTION("erase(iterator)") {
-        boost::dict<int, int, identity_hasher> d;
+        io::dict<int, int, identity_hasher> d;
 
         d[1] = 2;
         d[2] = 3;
@@ -332,7 +332,7 @@ TEST_CASE("dict erase", "[dict][erase]") {
     }
 
     SECTION("erase check destructor") {
-        boost::dict<int, destructor_check> d;
+        io::dict<int, destructor_check> d;
         auto ptr = std::make_shared<bool>(false);
         d[0] = destructor_check(ptr);
 
@@ -343,7 +343,7 @@ TEST_CASE("dict erase", "[dict][erase]") {
 }
 
 TEST_CASE("dict resize", "[dict][exists]") {
-    boost::dict<int, std::string> d;
+    io::dict<int, std::string> d;
     CHECK(d.size() == 0);
 
     std::string test_string = "hello";
@@ -358,7 +358,7 @@ TEST_CASE("dict resize", "[dict][exists]") {
 }
 
 TEST_CASE("dict insert 1000", "[dict][stress]") {
-    boost::dict<int, int> d;
+    io::dict<int, int> d;
     CHECK(d.size() == 0);
 
     for (int i = 0; i != 1000; ++i) {
@@ -373,7 +373,7 @@ TEST_CASE("dict insert 1000", "[dict][stress]") {
 }
 
 TEST_CASE("dict clear", "[dict][clear]") {
-    boost::dict<int, int> d;
+    io::dict<int, int> d;
     d[1] = 2;
 
     d.clear();
@@ -382,7 +382,7 @@ TEST_CASE("dict clear", "[dict][clear]") {
 
 TEST_CASE("dict iteration", "[dict][iter]") {
     SECTION("empty iteration") {
-        boost::dict<int, int> d;
+        io::dict<int, int> d;
 
         for (auto&& e : d) {
             (void)e;
@@ -391,7 +391,7 @@ TEST_CASE("dict iteration", "[dict][iter]") {
     }
 
     SECTION("non-const iterator") {
-        boost::dict<int, int> d;
+        io::dict<int, int> d;
         d[1] = 42;
 
         for (auto&& e : d) {
@@ -401,7 +401,7 @@ TEST_CASE("dict iteration", "[dict][iter]") {
     }
 
     SECTION("const iteration") {
-        boost::dict<int, int> d;
+        io::dict<int, int> d;
         d[1] = 42;
 
         const auto& const_d = d;
@@ -413,7 +413,7 @@ TEST_CASE("dict iteration", "[dict][iter]") {
     }
 
     SECTION("cbegin/cend iteration") {
-        boost::dict<int, int> d;
+        io::dict<int, int> d;
         d[1] = 42;
 
         for (auto iter = d.cbegin(); iter != d.cend(); ++iter) {
@@ -423,7 +423,7 @@ TEST_CASE("dict iteration", "[dict][iter]") {
     }
 
     SECTION("skip iterator") {
-        boost::dict<int, int, identity_hasher> d;
+        io::dict<int, int, identity_hasher> d;
         d[1] = 1;
         d[3] = 3;
         d[6] = 6;
@@ -440,7 +440,7 @@ TEST_CASE("dict iteration", "[dict][iter]") {
     }
 
     SECTION("modify") {
-        boost::dict<int, int> d;
+        io::dict<int, int> d;
         d[1] = 42;
 
         for (auto&& e : d) {
@@ -450,7 +450,7 @@ TEST_CASE("dict iteration", "[dict][iter]") {
     }
 
     SECTION("const key") {
-        boost::dict<int, int> d;
+        io::dict<int, int> d;
         static_assert(
             std::is_same<const int, decltype(d.begin()->first)>::value,
             "no const key");

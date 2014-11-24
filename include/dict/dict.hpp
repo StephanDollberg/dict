@@ -15,7 +15,7 @@
 #include "detail/key_value.hpp"
 #include "detail/iterator.hpp"
 
-namespace boost {
+namespace io {
 
 // container
 template <typename Key, typename Value, typename Hasher = std::hash<Key>,
@@ -449,6 +449,6 @@ void swap(dict<Key, Value, Hasher, KeyEqual, Allocator>& A,
     A.swap(B);
 }
 
-} // namespace boost
+} // namespace io
 
 #endif

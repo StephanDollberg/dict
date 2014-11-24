@@ -8,7 +8,7 @@
 
 #include "key_value.hpp"
 
-namespace boost {
+namespace io {
 
 namespace detail {
 
@@ -65,6 +65,6 @@ using const_dict_iterator =
 
 } // detail
 
-} // namespace boost
+} // namespace io
 
 #endif
