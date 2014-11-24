@@ -211,13 +211,14 @@ struct moved_tester {
 
     moved_tester() = default;
     explicit moved_tester(int x) : var(x), moved_from(false) {}
-    moved_tester(const moved_tester&) {};
+    moved_tester(const moved_tester& other) : var(other.var), moved_from(false) {}
     moved_tester(moved_tester&& other) {
         var = other.var;
         moved_from = false;
         other.moved_from = true;
     }
-    moved_tester& operator=(const moved_tester&) {
+    moved_tester& operator=(const moved_tester& other) {
+        var = other.var;
         return *this;
     };
     moved_tester& operator=(moved_tester&& other) {
