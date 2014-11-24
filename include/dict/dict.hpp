@@ -367,6 +367,7 @@ private:
                 }
 
                 _table[index] = std::move(_table[delete_index]);
+                std::get<0>(_table[delete_index]) = false;
                 index = delete_index;
             }
         }
