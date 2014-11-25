@@ -16,6 +16,41 @@ struct identity_hasher {
     std::size_t operator()(int x) const { return x; }
 };
 
+
+struct moved_tester {
+    int var;
+    bool moved_from;
+
+    moved_tester() = default;
+    explicit moved_tester(int x) : var(x), moved_from(false) {}
+    moved_tester(const moved_tester& other) : var(other.var), moved_from(false) {}
+    moved_tester(moved_tester&& other) {
+        var = other.var;
+        moved_from = false;
+        other.moved_from = true;
+    }
+    moved_tester& operator=(const moved_tester& other) {
+        var = other.var;
+        return *this;
+    };
+    moved_tester& operator=(moved_tester&& other) {
+        var = other.var;
+        moved_from = false;
+        other.moved_from = true;
+        return *this;
+    }
+
+    bool operator==(const moved_tester& other) const {
+        return var == other.var;
+    }
+};
+
+struct moved_tester_hasher {
+    std::size_t operator()(const moved_tester& tester) const {
+        return tester.var;
+    }
+};
+
 TEST_CASE("dict constructor", "[dict][constructor]") {
     SECTION("default") { io::dict<int, std::string> d; }
 
@@ -129,6 +164,72 @@ TEST_CASE("dict insert", "[dict][insert]") {
     }
 }
 
+TEST_CASE("dict insert_or_assign", "[dict][insert_or_assign]") {
+    SECTION("insert_or_assign(key, mapped)") {
+        {
+            io::dict<int, int> d;
+            int test_key = 1;
+            auto res_success = d.insert_or_assign(test_key, 2);
+
+            CHECK(d.size() == 1);
+            CHECK(res_success.first->first == 1);
+            CHECK(res_success.first->second == 2);
+            CHECK(res_success.second == true);
+
+            auto res_fail = d.insert_or_assign(test_key, 3);
+
+            CHECK(d.size() == 1);
+            CHECK(res_success.first->first == 1);
+            CHECK(res_success.first->second == 3);
+            CHECK(res_fail.second == false);
+        }
+
+        // moved from
+        {
+            io::dict<int, moved_tester> d;
+            moved_tester first_test(2);
+            int test_key = 1;
+            auto res_success = d.insert_or_assign(test_key, std::move(first_test));
+
+            CHECK(d.size() == 1);
+            CHECK(res_success.first->first == 1);
+            CHECK(res_success.first->second.var == 2);
+            CHECK(first_test.moved_from == true);
+            CHECK(res_success.second == true);
+
+            moved_tester second_test(3);
+            auto res_fail = d.insert_or_assign(test_key, std::move(second_test));
+
+            CHECK(d.size() == 1);
+            CHECK(res_success.first->first == 1);
+            CHECK(res_success.first->second.var == 3);
+            CHECK(second_test.moved_from == true);
+            CHECK(res_fail.second == false);
+        }
+    }
+
+    SECTION("insert_or_assign(key&&, args)") {
+        io::dict<moved_tester, int, moved_tester_hasher> d;
+        moved_tester first_test(1);
+        auto res_success = d.insert_or_assign(std::move(first_test), 2);
+
+        CHECK(d.size() == 1);
+        CHECK(res_success.first->first.var == 1);
+        CHECK(res_success.first->second == 2);
+        CHECK(first_test.moved_from == true);
+        CHECK(res_success.second == true);
+
+        moved_tester second_test(1);
+        auto res_fail = d.insert_or_assign(std::move(second_test), 3);
+
+        CHECK(d.size() == 1);
+        CHECK(res_success.first->first.var == 1);
+        CHECK(res_success.first->second == 3);
+        CHECK(second_test.moved_from == false);
+        CHECK(res_fail.second == false);
+    }
+}
+
 struct big_hash {
     std::size_t operator()(int x) const { return 1000000 + x; }
 };
@@ -204,40 +305,6 @@ TEST_CASE("dict emplace", "[dict][insert]") {
         CHECK(res->second == 0);
     }
 }
-
-struct moved_tester {
-    int var;
-    bool moved_from;
-
-    moved_tester() = default;
-    explicit moved_tester(int x) : var(x), moved_from(false) {}
-    moved_tester(const moved_tester& other) : var(other.var), moved_from(false) {}
-    moved_tester(moved_tester&& other) {
-        var = other.var;
-        moved_from = false;
-        other.moved_from = true;
-    }
-    moved_tester& operator=(const moved_tester& other) {
-        var = other.var;
-        return *this;
-    };
-    moved_tester& operator=(moved_tester&& other) {
-        var = other.var;
-        moved_from = false;
-        other.moved_from = true;
-        return *this;
-    }
-
-    bool operator==(const moved_tester& other) const {
-        return var == other.var;
-    }
-};
-
-struct moved_tester_hasher {
-    std::size_t operator()(const moved_tester& tester) const {
-        return tester.var;
-    }
-};
 
 TEST_CASE("dict try_emplace", "[dict][try_emplace]") {
     SECTION("try_emplace(key, args)") {
