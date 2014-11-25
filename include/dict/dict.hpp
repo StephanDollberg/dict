@@ -136,15 +136,7 @@ public:
 
     template <typename... Args>
     std::pair<iterator, bool> emplace(Args&&... args) {
-        auto entry = make_entry(std::forward<Args>(args)...);
-        auto index = find_index(std::get<1>(entry).view.first);
-
-        if (std::get<0>(_table[index])) {
-            return { iterator_from_index(index), false };
-        } else {
-            index = insert_entry(index, std::move(entry));
-            return { iterator_from_index(index), true };
-        }
+        return insert_entry(std::forward<Args>(args)...);
     }
 
     template <typename... Args>
@@ -154,27 +146,12 @@ public:
 
     template <class... Args>
     std::pair<iterator, bool> try_emplace(const key_type& key, Args&&... args) {
-        auto index = find_index(key);
-
-        if (std::get<0>(_table[index])) {
-            return { iterator_from_index(index), false };
-        } else {
-            index = insert_element(index, value_type(key, std::forward<Args>(args)...));
-            return { iterator_from_index(index), true };
-        }
+        return insert_element(key, std::forward<Args>(args)...);
     }
 
     template <class... Args>
     std::pair<iterator, bool> try_emplace(key_type&& key, Args&&... args) {
-        auto index = find_index(key);
-
-        if (std::get<0>(_table[index])) {
-            return { iterator_from_index(index), false };
-        } else {
-            index = insert_element(
-                index, value_type(std::move(key), std::forward<Args>(args)...));
-            return { iterator_from_index(index), true };
-        }
+        return insert_element(std::move(key), std::forward<Args>(args)...);
     }
 
     template <class... Args>
@@ -184,19 +161,14 @@ public:
     }
 
     template <class... Args>
-    iterator try_emplace(const_iterator /* hint */, key_type&& key, Args&&... args) {
+    iterator try_emplace(const_iterator /* hint */, key_type&& key,
+                         Args&&... args) {
         return try_emplace(std::move(key), std::forward<Args>(args)...).first;
     }
 
     std::pair<iterator, bool> insert(const value_type& obj) {
-        auto index = find_index(obj.first);
-
-        if (std::get<0>(_table[index])) {
-            return { iterator_from_index(index), false };
-        } else {
-            index = insert_entry(index, make_entry(obj.first, obj.second));
-            return { iterator_from_index(index), true };
-        }
+        check_expand();
+        return insert_element(obj.first, obj.second);
     }
 
     template <typename P,
@@ -295,7 +267,8 @@ public:
         if (std::get<0>(_table[index])) {
             return std::get<1>(_table[index]).view.second;
         } else {
-            return activate_element(index, key);
+            check_expand();
+            return activate_element(find_index(key), key);
         }
     }
 
@@ -314,7 +287,7 @@ public:
 
     void max_load_factor(float new_max_load_factor) {
         _max_element_count = std::ceil(new_max_load_factor * _table.size());
-        if (check_rehash()) {
+        if (next_is_rehash()) {
             rehash();
         }
     }
@@ -340,37 +313,50 @@ public:
 
     void rehash() { reserve(2 * _table.size()); }
 
-    bool next_is_rehash() const { return size() + 1 >= _max_element_count; }
+    bool next_is_rehash() const { return size() >= _max_element_count; }
 
     hasher hash_function() const { return _hasher; }
 
     key_equal key_eq() const { return _key_equal; }
 
 private:
-    size_type check_expand(size_type index, const Key& key) {
-        if (check_rehash()) {
+    void check_expand() {
+        if (next_is_rehash()) {
             rehash();
-            index = find_index(key);
         }
-
-        return index;
     }
 
-    template <typename Entry>
-    size_type insert_entry(size_type index, Entry&& new_entry) {
-        _table[index] = std::forward<Entry>(new_entry);
-        ++_element_count;
+    template <typename... Args>
+    std::pair<iterator, bool> insert_entry(Args&&... args) {
+        check_expand();
+        auto new_entry = make_entry(std::forward<Args>(args)...);
+        auto index = find_index(std::get<1>(new_entry).view.first);
 
-        return check_expand(index, std::get<1>(_table[index]).view.first);
+        if (std::get<0>(_table[index])) {
+            return { iterator_from_index(index), false };
+        } else {
+            _table[index] = std::move(new_entry);
+            ++_element_count;
+            return { iterator_from_index(index), true };
+        }
     }
 
-    template <typename Element>
-    size_type insert_element(size_type index, Element&& new_element) {
-        std::get<1>(_table[index]) = std::forward<Element>(new_element);
-        std::get<0>(_table[index]) = true;
-        ++_element_count;
+    template <typename KeyParam, typename Element>
+    std::pair<iterator, bool> insert_element(KeyParam&& key,
+                                             Element&& new_element) {
+        check_expand();
+        auto index = find_index(key);
 
-        return check_expand(index, std::get<1>(_table[index]).view.first);
+        if (std::get<0>(_table[index])) {
+            return { iterator_from_index(index), false };
+        } else {
+            std::get<1>(_table[index]) =
+                value_type(std::forward<KeyParam>(key),
+                           std::forward<Element>(new_element));
+            std::get<0>(_table[index]) = true;
+            ++_element_count;
+            return { iterator_from_index(index), true };
+        }
     }
 
     Value& activate_element(size_type index, const Key& key) {
@@ -378,7 +364,6 @@ private:
         std::get<1>(_table[index]).view.first = key;
         ++_element_count;
 
-        index = check_expand(index, key);
         return std::get<1>(_table[index]).view.second;
     }
 
@@ -438,8 +423,6 @@ private:
 
         return index;
     }
-
-    bool check_rehash() const { return size() >= _max_element_count; }
 
     size_type hash_index(const Key& key) const {
         return hash_index_impl(key, _table);
