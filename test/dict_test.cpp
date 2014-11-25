@@ -550,3 +550,21 @@ TEST_CASE("dict iteration", "[dict][iter]") {
             "no const key");
     }
 }
+
+TEST_CASE("proper iterator after insert", "[dict][insert]") {
+    // this test relies on & quadratic size hashing
+    io::dict<int, int> d;
+
+    int counter = 9;
+    while(!d.next_is_rehash()) {
+        d[counter] = counter;
+        ++counter;
+    }
+
+    // before rehash 24 will map to 8 after rehash to 24
+    auto res = d.insert({24, 24});
+
+    CHECK(res.first->first == 24);
+    CHECK(res.first->second == 24);
+    CHECK(res.second == true);
+}

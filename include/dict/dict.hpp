@@ -142,7 +142,7 @@ public:
         if (std::get<0>(_table[index])) {
             return { iterator_from_index(index), false };
         } else {
-            insert_entry(index, std::move(entry));
+            index = insert_entry(index, std::move(entry));
             return { iterator_from_index(index), true };
         }
     }
@@ -159,7 +159,7 @@ public:
         if (std::get<0>(_table[index])) {
             return { iterator_from_index(index), false };
         } else {
-            insert_element(index, value_type(key, std::forward<Args>(args)...));
+            index = insert_element(index, value_type(key, std::forward<Args>(args)...));
             return { iterator_from_index(index), true };
         }
     }
@@ -171,7 +171,7 @@ public:
         if (std::get<0>(_table[index])) {
             return { iterator_from_index(index), false };
         } else {
-            insert_element(
+            index = insert_element(
                 index, value_type(std::move(key), std::forward<Args>(args)...));
             return { iterator_from_index(index), true };
         }
@@ -194,7 +194,7 @@ public:
         if (std::get<0>(_table[index])) {
             return { iterator_from_index(index), false };
         } else {
-            insert_entry(index, make_entry(obj.first, obj.second));
+            index = insert_entry(index, make_entry(obj.first, obj.second));
             return { iterator_from_index(index), true };
         }
     }
@@ -347,17 +347,17 @@ public:
     key_equal key_eq() const { return _key_equal; }
 
 private:
-    Value& check_expand(size_type index, const Key& key) {
+    size_type check_expand(size_type index, const Key& key) {
         if (check_rehash()) {
             rehash();
             index = find_index(key);
         }
 
-        return std::get<1>(_table[index]).view.second;
+        return index;
     }
 
     template <typename Entry>
-    Value& insert_entry(size_type index, Entry&& new_entry) {
+    size_type insert_entry(size_type index, Entry&& new_entry) {
         _table[index] = std::forward<Entry>(new_entry);
         ++_element_count;
 
@@ -365,7 +365,7 @@ private:
     }
 
     template <typename Element>
-    Value& insert_element(size_type index, Element&& new_element) {
+    size_type insert_element(size_type index, Element&& new_element) {
         std::get<1>(_table[index]) = std::forward<Element>(new_element);
         std::get<0>(_table[index]) = true;
         ++_element_count;
@@ -378,7 +378,8 @@ private:
         std::get<1>(_table[index]).view.first = key;
         ++_element_count;
 
-        return check_expand(index, key);
+        index = check_expand(index, key);
+        return std::get<1>(_table[index]).view.second;
     }
 
     std::pair<size_type, iterator> erase_impl(const Key& key) {
