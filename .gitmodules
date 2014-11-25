@@ -1,3 +1,6 @@
 [submodule "test/catch"]
 	path = test/catch
 	url = https://github.com/philsquared/Catch
+[submodule "perf/nonius"]
+	path = perf/nonius
+	url = https://github.com/rmartinho/nonius

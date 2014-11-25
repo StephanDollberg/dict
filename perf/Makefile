@@ -10,6 +10,7 @@ ifeq ($(UNAME), Darwin)
 	LIBS=
 endif
 
+INCLUDES = -Inonius/include
 ARGS= -std=c++11 -O3 -DNDEBUG -Wall -W -Wextra -pedantic-errors $(INCLUDES) $(DEFINES) $(blah)
 
 ifeq ($(CXX),clang++-3.5)
