@@ -56,8 +56,7 @@ public:
         // we need to do this manually because only as of C++14 there is
         // explicit vector( size_type count, const Allocator& alloc =
         // Allocator() );
-        _table.resize(detail::next_power_of_two(
-            std::ceil(initial_size / initial_load_factor())));
+        _table.resize(next_size(initial_size, initial_load_factor()));
     }
 
     explicit dict(const Allocator& alloc)
@@ -320,8 +319,7 @@ public:
     void reserve(std::size_t new_size) {
         if (new_size > _table.size()) {
             table_type new_table(_table.get_allocator());
-            new_table.resize(detail::next_power_of_two(
-                std::ceil(new_size / max_load_factor())));
+            new_table.resize(next_size(new_size, max_load_factor()));
 
             for (auto&& e : _table) {
                 if (std::get<0>(e)) {
@@ -501,6 +499,10 @@ private:
     }
 
     size_type initial_size() const { return detail::next_power_of_two(8); }
+
+    constexpr size_type next_size(size_type min_size, double load_factor) const {
+        return detail::next_power_of_two(std::ceil(min_size / load_factor));
+    }
 
     constexpr float initial_load_factor() const { return 0.7; }
 
