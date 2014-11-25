@@ -32,3 +32,5 @@ Alternatively if want to also benchmark [google-sparsehash](https://code.google.
 ```
 make with_google
 ```
+
+Note that you need to have google-sparsehash installed and in path for it to work.
