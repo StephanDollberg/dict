@@ -24,6 +24,8 @@ public:
             increment();
         }
     }
+    dict_iterator_base(Iter p, Iter end, bool /* skip_test */)
+        : _ptr(p), _end(end) {}
 
     template <typename Other, typename OtherIter>
     dict_iterator_base(const dict_iterator_base<Other, OtherIter>& other)
@@ -37,8 +39,7 @@ private:
     void increment() {
         do {
             ++_ptr;
-        } while(_ptr != _end && !std::get<0>(*_ptr));
-
+        } while (_ptr != _end && !std::get<0>(*_ptr));
     }
 
     template <typename OtherValue, typename OtherIter>

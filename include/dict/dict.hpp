@@ -112,15 +112,15 @@ public:
     }
 
     iterator end() noexcept {
-        return { _table.end(), _table.end() };
+        return { _table.end(), _table.end(), true };
     }
 
     const_iterator end() const noexcept {
-        return { _table.end(), _table.end() };
+        return { _table.end(), _table.end(), true };
     }
 
     const_iterator cend() const noexcept {
-        return { _table.end(), _table.end() };
+        return { _table.end(), _table.end(), true };
     }
 
     size_type size() const noexcept { return _element_count; }
@@ -418,7 +418,7 @@ private:
             }
         }
 
-        return { 1, iterator_from_index(index) };
+        return { 1, { std::next(_table.begin(), index), _table.end() } };
     }
 
     size_type find_index(const Key& key) const {
@@ -474,7 +474,7 @@ private:
     }
 
     const_iterator iterator_from_index(size_type index) const {
-        return { std::next(_table.begin(), index), _table.end() };
+        return { std::next(_table.begin(), index), _table.end(), true };
     }
 
     size_type initial_size() const { return detail::next_power_of_two(8); }
