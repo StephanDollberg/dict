@@ -184,13 +184,16 @@ public:
     }
 
     template <class Mapped>
-    std::pair<iterator, bool> insert_or_assign(const key_type& key, Mapped&& mapped) {
+    std::pair<iterator, bool> insert_or_assign(const key_type& key,
+                                               Mapped&& mapped) {
         return insert_assign_element(key, std::forward<Mapped>(mapped));
     }
 
     template <class Mapped>
-    std::pair<iterator, bool> insert_or_assign(key_type&& key, Mapped&& mapped) {
-        return insert_assign_element(std::move(key), std::forward<Mapped>(mapped));
+    std::pair<iterator, bool> insert_or_assign(key_type&& key,
+                                               Mapped&& mapped) {
+        return insert_assign_element(std::move(key),
+                                     std::forward<Mapped>(mapped));
     }
 
     template <class M>
@@ -363,19 +366,16 @@ private:
         }
     }
 
-    template <typename KeyParam, typename Element>
-    std::pair<iterator, bool> insert_element(KeyParam&& key,
-                                             Element&& new_element) {
+    template <typename KeyParam, typename Mapped>
+    std::pair<iterator, bool> insert_element(KeyParam&& key, Mapped&& mapped) {
         check_expand();
         auto index = find_index(key);
 
         if (std::get<0>(_table[index])) {
             return { iterator_from_index(index), false };
         } else {
-            std::get<1>(_table[index]) =
-                value_type(std::forward<KeyParam>(key),
-                           std::forward<Element>(new_element));
-            std::get<0>(_table[index]) = true;
+            _table[index] = make_entry(std::forward<KeyParam>(key),
+                                       std::forward<Mapped>(mapped));
             ++_element_count;
             return { iterator_from_index(index), true };
         }
@@ -388,7 +388,8 @@ private:
         auto index = find_index(key);
 
         if (std::get<0>(_table[index])) {
-            std::get<1>(_table[index]).view.second = std::forward<Mapped>(mapped);
+            std::get<1>(_table[index]).view.second =
+                std::forward<Mapped>(mapped);
             return { iterator_from_index(index), false };
         } else {
             _table[index] = make_entry(std::forward<KeyParam>(key),
