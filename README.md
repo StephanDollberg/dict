@@ -4,7 +4,7 @@ Open-addressed hash map implementation in C++
 
 This is a cache friendly alternative to `std::unordered_map`. Inspired by Chandler Carruth's [talk](https://www.youtube.com/watch?v=fHNmRkzxHWs) at CppCon.
 
-```
+```cpp
 #include <iostream>
 #include <dict/dict.hpp>
 
