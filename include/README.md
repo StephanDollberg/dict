@@ -1,6 +1,6 @@
 Implementation Notes
 ===
-Currently, the implementation uses linear probing. This allows for immediate deletion of elements. 
+Currently, the implementation uses linear probing. This allows for immediate deletion of elements.
 
 The number of buckets is a power of two.
 
@@ -8,4 +8,4 @@ In case measurements show that both these properties lead to too strong clusteri
 
 Switching to quadratic probing would require a bit more refactoring on the erasure part.
 
-The internal data structure is currently a `std::vector<tuple<bool, pair<Key, Value>>>` where the bool flag indicates whether the element is active. A possible space optimization would to use an extra bool vector however this would need some more detail analysis(cache etc.). 
+The internal data structure is currently a `std::vector<tuple<bool, pair<Key, Value>>>` where the bool flag indicates whether the element is active. A possible space optimization would be to use an extra bool vector however this would need some more detail analysis(cache etc.).
