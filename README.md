@@ -23,7 +23,7 @@ The interface is the same as for `std::unordered_map` besides the following list
  - resides in namespace `io`
  - C++17 [N4279](https://isocpp.org/files/papers/n4279.html) additional member functions
  - no erase(iterator first, iterator last)
- - erase doesn't offer strong exception safety
+ - erase doesn't offer the strong exception safety guarantee
  - no bucket interface
 
 Everything else should be the [same](http://en.cppreference.com/w/cpp/container/unordered_map).
