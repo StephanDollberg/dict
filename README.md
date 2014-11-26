@@ -11,7 +11,7 @@ This is a cache friendly alternative to `std::unordered_map`.
 int main() {
   io::dict<std::string, int> worldcups{{"Germany", 4}, {"Brazil", 5}, {"France", 2}};
 	
-  std::cout << "Germany won the world cup " << worldcups["Germany"] << " times " << std::endl;
+  std::cout << worldcups["Germany"] << " stars for Germany!" << std::endl;
 }
 ```
 
