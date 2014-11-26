@@ -2,7 +2,7 @@ dict
 ==========
 Open-addressed hash map implementation in C++
 
-This is a cache friendly alternative to `std::unordered_map`.
+This is a cache friendly alternative to `std::unordered_map`. Inspired by Chandler Carruth's [talk](https://www.youtube.com/watch?v=fHNmRkzxHWs) at CppCon.
 
 ```
 #include <iostream>
