@@ -69,6 +69,54 @@ TEST_CASE("dict constructor", "[dict][constructor]") {
         CHECK(d[1] == 2);
         CHECK(d[3] == 4);
     }
+
+    SECTION("copy ctor") {
+        io::dict<int, int> d2{{1,2}, {3,4}};
+        io::dict<int, int> d1(d2);
+
+        d1 = d2;
+
+        CHECK(d1 == d2);
+    }
+
+    SECTION("move ctor") {
+        io::dict<int, int> d2{{1,2}, {3,4}};
+        io::dict<int, int> d3{{1,2}, {3,4}};
+        io::dict<int, int> d1(std::move(d2));
+
+        CHECK(d1 == d3);
+    }
+
+}
+
+TEST_CASE("operator=", "[dict][operator=]") {
+    SECTION("copy assign") {
+        io::dict<int, int> d2{{1,2}, {3,4}};
+        io::dict<int, int> d1;
+
+        d1 = d2;
+
+        CHECK(d1 == d2);
+    }
+
+    SECTION("move assign") {
+        io::dict<int, int> d1;
+        io::dict<int, int> d2{{1,2}, {3,4}};
+        io::dict<int, int> d3{{1,2}, {3,4}};
+
+        d1 = std::move(d2);
+
+        CHECK(d1 == d3);
+    }
+
+    SECTION("init list") {
+        io::dict<int, int> d1{{42, 42}};
+        d1 = {{1,2}, {3,4}};
+
+        io::dict<int, int> d2{{1,2}, {3,4}};
+
+        CHECK(d1 == d2);
+    }
 }
 
 TEST_CASE("dict operator[]", "[dict][operator[]]") {
