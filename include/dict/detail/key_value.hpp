@@ -18,22 +18,20 @@ union key_value {
     value_type const_view;
     internal_value_type view;
 
-    template <typename... Args>
-    key_value(Args&&... args)
-        : const_view(std::forward<Args>(args)...) {}
+    // template <typename... Args>
+    // key_value(Args&&... args)
+    //     : const_view(std::forward<Args>(args)...) {}
 
-    // The following version in comparison to the variadic above also allows
-    // clang 3.5 to compile the code in c++1y mode. gcc49 is fine without it.
+    // clang has a problem with the variadic version above
     // Not sure whether this is a bug or not
-    // key_value() : const_view() {}
-    // key_value(value_type&& other) : const_view(std::move(other)) {}
-    // key_value(const value_type& other) : const_view(other) {}
-    // template<typename K, typename V>
-    // key_value(K&& k, V&& v) : const_view(std::forward<K>(k),
-    // std::forward<V>(v)) {}
+    key_value() : const_view() {}
+    key_value(value_type&& other) : const_view(std::move(other)) {}
+    key_value(const value_type& other) : const_view(other) {}
+    template <typename K, typename V>
+    key_value(K&& k, V&& v)
+        : const_view(std::forward<K>(k), std::forward<V>(v)) {}
 
-    key_value(const key_value& other)
-        : const_view(other.const_view) {}
+    key_value(const key_value& other) : const_view(other.const_view) {}
 
     key_value(key_value&& other)
     noexcept(std::is_nothrow_move_constructible<internal_value_type>::value)
