@@ -25,6 +25,7 @@ The interface is the same as for `std::unordered_map` besides the following list
  - no erase(iterator first, iterator last)
  - erase doesn't offer the strong exception safety guarantee and invalidates all iterators
  - no bucket interface
+ - the load factor is a percentage - float in the range of [0,1)
 
 Everything else should be the [same](http://en.cppreference.com/w/cpp/container/unordered_map).
 
