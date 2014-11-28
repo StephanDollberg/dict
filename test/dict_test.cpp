@@ -534,11 +534,26 @@ TEST_CASE("dict insert 1000", "[dict][stress]") {
 }
 
 TEST_CASE("dict clear", "[dict][clear]") {
-    io::dict<int, int> d;
-    d[1] = 2;
+    SECTION("clear") {
+        io::dict<int, int> d;
+        d[1] = 2;
 
-    d.clear();
-    CHECK(d.size() == 0);
+        d.clear();
+        CHECK(d.size() == 0);
+        auto res = d.find(1);
+        CHECK(res == d.end());
+    }
+    SECTION("insert after clear") {
+        io::dict<int, int> d;
+        d[1] = 2;
+
+        d.clear();
+        CHECK(d.size() == 0);
+
+        d[1] = 42;
+        CHECK(d.size() == 1);
+        CHECK(d[1] == 42);
+    }
 }
 
 TEST_CASE("dict iteration", "[dict][iter]") {

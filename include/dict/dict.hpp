@@ -129,7 +129,10 @@ public:
     // size_type max_size() const {}
 
     void clear() {
+        // this could optimized to not re-default init everything
+        auto old_size = _table.size();
         _table.clear();
+        _table.resize(old_size);
         _element_count = 0;
     }
 
