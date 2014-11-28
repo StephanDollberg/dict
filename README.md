@@ -20,7 +20,7 @@ The interface is the same as for `std::unordered_map` besides the following list
 
 ### Interface Differences to `std::unordered_map`
 
- - resides in namespace `io`
+ - resides in namespace `io` and is simply called `dict`
  - C++17 [N4279](https://isocpp.org/files/papers/n4279.html) additional member functions
  - no erase(iterator first, iterator last)
  - erase doesn't offer the strong exception safety guarantee and invalidates all iterators
