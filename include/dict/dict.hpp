@@ -507,7 +507,8 @@ private:
 
     size_type initial_size() const { return detail::next_power_of_two(8); }
 
-    constexpr size_type next_size(size_type min_size, double load_factor) const {
+    constexpr size_type next_size(size_type min_size,
+                                  double load_factor) const {
         return detail::next_power_of_two(std::ceil(min_size / load_factor));
     }
 
@@ -525,6 +526,32 @@ template <typename Key, typename Value, typename Hasher, typename KeyEqual,
 void swap(dict<Key, Value, Hasher, KeyEqual, Allocator>& A,
           dict<Key, Value, Hasher, KeyEqual, Allocator>& B) {
     A.swap(B);
+}
+
+template <typename Key, typename Value, typename Hasher, typename KeyEqual,
+          typename Allocator>
+bool operator==(dict<Key, Value, Hasher, KeyEqual, Allocator>& A,
+                dict<Key, Value, Hasher, KeyEqual, Allocator>& B) {
+    if (A.size() != B.size()) {
+        return false;
+    }
+
+    for (const auto& elem : A) {
+        auto res = B.find(elem.first);
+
+        if (res == B.end() || res->second != elem.second) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+template <typename Key, typename Value, typename Hasher, typename KeyEqual,
+          typename Allocator>
+bool operator!=(dict<Key, Value, Hasher, KeyEqual, Allocator>& A,
+                dict<Key, Value, Hasher, KeyEqual, Allocator>& B) {
+    return !(A == B);
 }
 
 } // namespace io
