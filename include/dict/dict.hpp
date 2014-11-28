@@ -318,6 +318,12 @@ public:
 
     void max_load_factor(float new_max_load_factor) {
         _max_element_count = std::ceil(new_max_load_factor * _table.size());
+
+        // a load factor of 1 would make index finding never stop
+        if (_max_element_count == _table.size()) {
+            _max_element_count -= 1;
+        }
+
         if (next_is_rehash()) {
             rehash();
         }
