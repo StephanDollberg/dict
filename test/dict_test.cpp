@@ -285,7 +285,7 @@ struct big_hash {
 TEST_CASE("dict rehash", "[dict][rehash]") {
     SECTION("insert rehash") {
         io::dict<int, int, big_hash> d;
-        d[1] = 42;
+        d.max_load_factor(1.0);
 
         int i = 0;
         while (!d.next_is_rehash()) {
@@ -293,20 +293,28 @@ TEST_CASE("dict rehash", "[dict][rehash]") {
             ++i;
         }
 
-        d[42] = 42;
-        CHECK(d[42] == 42);
+        d[i] = i;
+        CHECK(d[i] == i);
+
+        int sum = 0; for(auto&& e: d) { sum += e.second; }
+        CHECK(sum == i * (i + 1) / 2);
     }
 
     SECTION("max_load_factor == 1") {
         io::dict<int, int, big_hash> d;
         d.max_load_factor(1.0);
 
-        // 11 is starting table size
-        for (int i = 0; i != 11; ++i) {
+        int i = 0;
+        while (!d.next_is_rehash()) {
             d[i] = i;
+            ++i;
         }
 
-        CHECK(d[10] == 10);
+        d[i] = i;
+        CHECK(d[i] == i);
+
+        int sum = 0; for(auto&& e: d) { sum += e.second; }
+        CHECK(sum == i * (i + 1) / 2);
     }
 }
 
@@ -498,8 +506,6 @@ TEST_CASE("equal range", "[dict][equal_range]") {
     }
 }
 
-TEST_CASE("dict exists", "[dict][exists]") {}
-
 struct destructor_check {
     destructor_check() = default;
     destructor_check(std::shared_ptr<bool> ptr) : _ptr(ptr) {}
@@ -513,7 +519,7 @@ struct destructor_check {
     std::shared_ptr<bool> _ptr;
 };
 
-TEST_CASE("dict erase", "[dict][erase]") {
+TEST_CASE("dict erase", "[dict][resize]") {
     SECTION("erase(key)") {
         io::dict<int, std::string> d;
 
@@ -551,7 +557,7 @@ TEST_CASE("dict erase", "[dict][erase]") {
     }
 }
 
-TEST_CASE("dict resize", "[dict][exists]") {
+TEST_CASE("dict resize", "[dict][resize]") {
     io::dict<int, std::string> d;
     CHECK(d.size() == 0);
 
