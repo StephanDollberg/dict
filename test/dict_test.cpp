@@ -557,19 +557,19 @@ TEST_CASE("dict erase", "[dict][resize]") {
     }
 }
 
-TEST_CASE("dict resize", "[dict][resize]") {
-    io::dict<int, std::string> d;
+TEST_CASE("dict reserve", "[dict][reserve]") {
+    io::dict<int, int> d;
     CHECK(d.size() == 0);
 
-    std::string test_string = "hello";
+    int test_size = 100;
+    d.reserve(test_size);
 
-    d[2345] = test_string;
+    bool flag = false;
+    for(int i = 0; i != test_size - 1; ++i) {
+        d[i] = i;
+    }
 
-    CHECK(d[2345] == test_string);
-
-    d.reserve(1000);
-    CHECK(d.size() == 1);
-    CHECK(d[2345] == test_string);
+    CHECK_FALSE(d.next_is_rehash());
 }
 
 TEST_CASE("dict insert 1000", "[dict][stress]") {
