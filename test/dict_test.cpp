@@ -564,7 +564,6 @@ TEST_CASE("dict reserve", "[dict][reserve]") {
     int test_size = 100;
     d.reserve(test_size);
 
-    bool flag = false;
     for(int i = 0; i != test_size - 1; ++i) {
         d[i] = i;
     }
