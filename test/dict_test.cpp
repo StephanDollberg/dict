@@ -633,6 +633,11 @@ TEST_CASE("dict iteration", "[dict][iter]") {
     }
 }
 
+TEST_CASE("get_allocator", "[dict][get_allocator]") {
+    io::dict<int, int> d;
+    CHECK(d.get_allocator() == (std::allocator<std::pair<const int, int>>()));
+}
+
 TEST_CASE("proper iterator after insert", "[dict][insert]") {
     // this test relies on & quadratic size hashing
     io::dict<int, int> d;

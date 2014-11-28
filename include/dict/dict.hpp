@@ -98,6 +98,10 @@ public:
         : dict(init.begin(), init.end(), initial_size(), hasher, KeyEqual(),
                alloc) {}
 
+    allocator_type get_allocator() const noexcept {
+        return _table.get_allocator();
+    }
+
     iterator begin() noexcept {
         return { _table.begin(), _table.end() };
     }
