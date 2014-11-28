@@ -35,7 +35,7 @@ Everything else should be the [same](http://en.cppreference.com/w/cpp/container/
 #### Dependencies
 The only dependency is a recent C++11 compiler and boost. So far we only use the iterator library from boost so the header only part is even enough. Simply install it via your favourite package manager
 
-#### Supported Systems
+#### Supported Systems [![Build Status](https://travis-ci.org/StephanDollberg/dict.svg?branch=master)](https://travis-ci.org/StephanDollberg/dict)
 Tested on:
 
 - Ubuntu 14.04LTS with default gcc(4.8) and default boost(1.54)
