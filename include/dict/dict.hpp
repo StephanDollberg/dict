@@ -425,12 +425,13 @@ private:
             return { 0, {} };
         }
 
-        auto delete_index = index;
+        const auto deleted_index = index;
 
         bool keep = true;
         while (keep) {
             _table[index] = empty_slot_factory();
 
+            auto delete_index = index;
             while (true) {
                 delete_index = next_index(delete_index);
 
@@ -444,17 +445,17 @@ private:
 
                 if ((index <= delete_index)
                         ? ((index < new_key) && (new_key <= delete_index))
-                        : (new_key <= delete_index)) {
+                        : ((index < new_key) || (new_key <= delete_index))) {
                     continue;
                 }
 
-                _table[index] = std::move(_table[delete_index]);
-                std::get<0>(_table[delete_index]) = false;
+                using std::swap;
+                swap(_table[index], _table[delete_index]);
                 index = delete_index;
             }
         }
 
-        return { 1, { std::next(_table.begin(), index), _table.end() } };
+        return { 1, { std::next(_table.begin(), deleted_index), _table.end() } };
     }
 
     size_type find_index(const Key& key) const {

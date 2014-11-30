@@ -519,6 +519,15 @@ struct destructor_check {
     std::shared_ptr<bool> _ptr;
 };
 
+struct erase_move_hasher {
+    std::size_t operator()(int x) const {
+        if(x == 1) return 1;
+        if(x == 2) return 2;
+        if(x == 3) return 1;
+        return x;
+    }
+};
+
 TEST_CASE("dict erase", "[dict][resize]") {
     SECTION("erase(key)") {
         io::dict<int, std::string> d;
@@ -536,14 +545,28 @@ TEST_CASE("dict erase", "[dict][resize]") {
     }
 
     SECTION("erase(iterator)") {
-        io::dict<int, int, identity_hasher> d;
+        SECTION("basic") {
+            io::dict<int, int, identity_hasher> d;
 
-        d[1] = 2;
-        d[2] = 3;
-        auto iter = d.find(1);
+            d[1] = 2;
+            d[2] = 3;
+            auto iter = d.find(1);
 
-        CHECK(d.erase(iter)->second == 3);
-        CHECK(d[1] == 0);
+            CHECK(d.erase(iter)->second == 3);
+            CHECK(d[1] == 0);
+        }
+        // implementation testing
+        SECTION("proper iterator after reshift") {
+            io::dict<int, int, erase_move_hasher> d;
+
+            d[1] = 1;
+            d[2] = 2;
+            d[3] = 3;
+            auto iter = d.find(1);
+
+            CHECK(d.erase(iter)->second == 3);
+            CHECK(d[1] == 0);
+        }
     }
 
     SECTION("erase check destructor") {
