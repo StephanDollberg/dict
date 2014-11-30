@@ -427,35 +427,30 @@ private:
 
         const auto deleted_index = index;
 
-        bool keep = true;
-        while (keep) {
-            _table[index] = empty_slot_factory();
+        _table[index] = empty_slot_factory();
 
-            auto delete_index = index;
-            while (true) {
-                delete_index = next_index(delete_index);
+        auto delete_index = index;
+        while (true) {
+            delete_index = next_index(delete_index);
 
-                if (!std::get<0>(_table[delete_index])) {
-                    keep = false;
-                    break;
-                }
-
-                auto new_key =
-                    hash_index(std::get<1>(_table[delete_index]).view.first);
-
-                if ((index <= delete_index)
-                        ? ((index < new_key) && (new_key <= delete_index))
-                        : ((index < new_key) || (new_key <= delete_index))) {
-                    continue;
-                }
-
-                using std::swap;
-                swap(_table[index], _table[delete_index]);
-                index = delete_index;
+            if (!std::get<0>(_table[delete_index])) {
+                return { 1, { std::next(_table.begin(), deleted_index), _table.end() } };
             }
-        }
 
-        return { 1, { std::next(_table.begin(), deleted_index), _table.end() } };
+            auto new_key =
+                hash_index(std::get<1>(_table[delete_index]).view.first);
+
+            if ((index <= delete_index)
+                    ? ((index < new_key) && (new_key <= delete_index))
+                    : ((index < new_key) || (new_key <= delete_index))) {
+                continue;
+            }
+
+            // swapping previously emptied index with delete_index
+            using std::swap;
+            swap(_table[index], _table[delete_index]);
+            index = delete_index;
+        }
     }
 
     size_type find_index(const Key& key) const {
