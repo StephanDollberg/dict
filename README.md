@@ -42,3 +42,5 @@ Tested on:
 - Fedora 21 with default gcc(4.9) and default boost(1.55)
 - Mac OSX with apple clang(3.5svn), clang3.5 and homebrew gcc(4.9) and homebrew boost(1.55)
 - Windows 8.1 with STL's mingw(4.9.1) + boost(1.56) pack(12.1)
+
+Contributions and feedback highly appreciated.
