@@ -173,7 +173,6 @@ public:
     }
 
     std::pair<iterator, bool> insert(const value_type& obj) {
-        check_expand();
         return insert_element(obj.first, obj.second);
     }
 
