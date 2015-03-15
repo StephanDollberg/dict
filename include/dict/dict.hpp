@@ -1,15 +1,10 @@
 #ifndef DICT_HPP
 #define DICT_HPP
 
-#include <string>
 #include <vector>
 #include <stdexcept>
 #include <tuple>
-#include <cmath>
 #include <functional>
-#include <memory>
-
-#include <boost/iterator/iterator_facade.hpp>
 
 #include "detail/prime.hpp"
 #include "detail/key_value.hpp"
