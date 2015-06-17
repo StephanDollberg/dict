@@ -356,6 +356,7 @@ private:
         }
     }
 
+    // insert by variadic arg pack (including key)
     template <typename... Args>
     std::pair<iterator, bool> insert_entry(Args&&... args) {
         check_expand();
@@ -371,6 +372,7 @@ private:
         }
     }
 
+    // insert by key + mapped value
     template <typename KeyParam, typename Mapped>
     std::pair<iterator, bool> insert_element(KeyParam&& key, Mapped&& mapped) {
         check_expand();
@@ -404,6 +406,7 @@ private:
         }
     }
 
+    // marks element at given index as in the map
     Value& activate_element(size_type index, const Key& key) {
         std::get<0>(_table[index]) = true;
         std::get<1>(_table[index]).view.first = key;
