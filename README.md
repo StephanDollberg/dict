@@ -24,11 +24,12 @@ The interface is the same as for `std::unordered_map` besides the following list
  - C++17 [N4279](https://isocpp.org/files/papers/n4279.html) additional member functions
  - no erase(iterator first, iterator last)
  - erase doesn't offer the strong exception safety guarantee and invalidates all iterators
- - no bucket interface
- - the load factor is a percentage - float in the range of [0,1)
+ - no bucket interface (Seriously, who uses that anyway?)
+ - the load factor is a percentage - a float in the range of [0,1)
 
-Everything else should be the [same](http://en.cppreference.com/w/cpp/container/unordered_map).
+Everything else should be the same as in the standard [unordered_map](http://en.cppreference.com/w/cpp/container/unordered_map).
 
+Follow these links for [implementation](https://github.com/StephanDollberg/dict/tree/master/include/dict) and [performance](https://github.com/StephanDollberg/dict/tree/master/perf) notes.
 ### Using/Installing dict
 `dict` is header only so you don't need to build anything. You can either add `include/dict` to your compiler include path(e.g.: `-I/path/to/dict/include` or put it to `/usr/local/include`) or copy the files to your local project.
 
