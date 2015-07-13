@@ -497,7 +497,7 @@ private:
     }
 
     iterator iterator_from_index(size_type index) {
-        return { std::next(_table.begin(), index), _table.end() };
+        return { std::next(_table.begin(), index), _table.end(), true };
     }
 
     const_iterator iterator_from_index(size_type index) const {
