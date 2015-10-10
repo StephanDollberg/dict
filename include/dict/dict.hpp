@@ -145,23 +145,23 @@ public:
         return emplace(std::forward<Args>(args)...).first;
     }
 
-    template <class... Args>
+    template <typename... Args>
     std::pair<iterator, bool> try_emplace(const key_type& key, Args&&... args) {
         return insert_element(key, std::forward<Args>(args)...);
     }
 
-    template <class... Args>
+    template <typename... Args>
     std::pair<iterator, bool> try_emplace(key_type&& key, Args&&... args) {
         return insert_element(std::move(key), std::forward<Args>(args)...);
     }
 
-    template <class... Args>
+    template <typename... Args>
     iterator try_emplace(const_iterator /* hint */, const key_type& key,
                          Args&&... args) {
         return try_emplace(key, std::forward<Args>(args)...).first;
     }
 
-    template <class... Args>
+    template <typename... Args>
     iterator try_emplace(const_iterator /* hint */, key_type&& key,
                          Args&&... args) {
         return try_emplace(std::move(key), std::forward<Args>(args)...).first;
@@ -183,26 +183,26 @@ public:
         return insert(obj);
     }
 
-    template <class Mapped>
+    template <typename Mapped>
     std::pair<iterator, bool> insert_or_assign(const key_type& key,
                                                Mapped&& mapped) {
         return insert_assign_element(key, std::forward<Mapped>(mapped));
     }
 
-    template <class Mapped>
+    template <typename Mapped>
     std::pair<iterator, bool> insert_or_assign(key_type&& key,
                                                Mapped&& mapped) {
         return insert_assign_element(std::move(key),
                                      std::forward<Mapped>(mapped));
     }
 
-    template <class M>
+    template <typename M>
     iterator insert_or_assign(const_iterator /* hint */, const key_type& key,
                               M&& obj) {
         return insert_or_assign(key, std::forward<M>(obj)).first;
     }
 
-    template <class M>
+    template <typename M>
     iterator insert_or_assign(const_iterator /* hint */, key_type&& key,
                               M&& obj) {
         return insert_or_assign(std::move(key), std::forward<M>(obj)).first;
@@ -388,6 +388,7 @@ private:
         }
     }
 
+    // insert or overwrite by key + mapped value
     template <typename KeyParam, typename Mapped>
     std::pair<iterator, bool> insert_assign_element(KeyParam&& key,
                                                     Mapped&& mapped) {
