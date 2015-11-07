@@ -11,6 +11,15 @@
 #include <sparsehash/dense_hash_map>
 #endif
 
+
+struct inc_gen {
+    int operator()() {
+        return _counter++;
+    }
+
+    int _counter = 0;
+};
+
 template <typename Map>
 void insert_test(Map& map) {
     for (int i = 0; i != 10000; ++i) {
@@ -39,13 +48,13 @@ NONIUS_BENCHMARK("google insert", [](nonius::chronometer meter) {
 #endif
 
 #ifdef WITH_GOOGLE_BENCH
-template <typename Map>
-Map build_map_google(int size) {
+template <typename Map, typename Gen>
+Map build_map_google(int size, Gen gen) {
     Map d;
     d.set_empty_key(0);
 
     for (int i = 0; i != size; ++i) {
-        d[i] = i;
+        d[gen()] = i;
     }
 
     return d;
@@ -64,12 +73,12 @@ Map build_map_google_with_reserve(int size) {
 }
 #endif
 
-template <typename Map>
-Map build_map(int size) {
+template <typename Map, typename Gen>
+Map build_map(int size, Gen gen) {
     Map d;
 
     for (int i = 0; i != size; ++i) {
-        d[i] = i;
+        d[gen()] = i;
     }
 
     return d;
@@ -99,7 +108,7 @@ int lookup_test(Map& map, Generator& gen) {
 const int small_lookup_test_size = 10;
 
 NONIUS_BENCHMARK("small dict lookup", [](nonius::chronometer meter) {
-    auto d = build_map<io::dict<int, int>>(small_lookup_test_size);
+    auto d = build_map<io::dict<int, int>>(small_lookup_test_size, inc_gen());
 
     std::uniform_int_distribution<std::size_t> normal(0, d.size() - 1);
     std::mt19937 engine;
@@ -109,7 +118,7 @@ NONIUS_BENCHMARK("small dict lookup", [](nonius::chronometer meter) {
 })
 
 NONIUS_BENCHMARK("small umap lookup", [](nonius::chronometer meter) {
-    auto d = build_map<std::unordered_map<int, int>>(small_lookup_test_size);
+    auto d = build_map<std::unordered_map<int, int>>(small_lookup_test_size, inc_gen());
 
     std::uniform_int_distribution<std::size_t> normal(0, d.size() - 1);
     std::mt19937 engine;
@@ -121,7 +130,7 @@ NONIUS_BENCHMARK("small umap lookup", [](nonius::chronometer meter) {
 #ifdef WITH_GOOGLE_BENCH
 NONIUS_BENCHMARK("small google lookup", [](nonius::chronometer meter) {
     auto d =
-        build_map_google<google::dense_hash_map<int, int>>(small_lookup_test_size);
+        build_map_google<google::dense_hash_map<int, int>>(small_lookup_test_size, inc_gen());
 
     std::uniform_int_distribution<std::size_t> normal(0, d.size() - 1);
     std::mt19937 engine;
@@ -134,19 +143,57 @@ NONIUS_BENCHMARK("small google lookup", [](nonius::chronometer meter) {
 const int lookup_test_size = 1000000;
 
 NONIUS_BENCHMARK("dict lookup", [](nonius::chronometer meter) {
-    auto d = build_map<io::dict<int, int>>(lookup_test_size);
 
-    std::uniform_int_distribution<std::size_t> normal(0, d.size() - 1);
+    std::uniform_int_distribution<std::size_t> normal(0, lookup_test_size - 1);
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+    auto d = build_map<io::dict<int, int>>(lookup_test_size, gen);
+
+    meter.measure([&, gen] { return lookup_test(d, gen); });
+})
+
+NONIUS_BENCHMARK("umap lookup", [](nonius::chronometer meter) {
+
+    std::uniform_int_distribution<std::size_t> normal(0, lookup_test_size - 1);
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+    auto d = build_map<std::unordered_map<int, int>>(lookup_test_size, gen);
+
+    meter.measure([&, gen] { return lookup_test(d, gen); });
+})
+
+#ifdef WITH_GOOGLE_BENCH
+NONIUS_BENCHMARK("google lookup", [](nonius::chronometer meter) {
+    std::uniform_int_distribution<std::size_t> normal(0, lookup_test_size - 1);
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+    auto d =
+        build_map_google<google::dense_hash_map<int, int>>(lookup_test_size, gen);
+
+    meter.measure([&, gen] { return lookup_test(d, gen); });
+})
+#endif
+
+NONIUS_BENCHMARK("dict lookup with many misses", [](nonius::chronometer meter) {
+    std::uniform_int_distribution<std::size_t> build_normal(0, lookup_test_size - 1);
+    std::mt19937 build_engine;
+    auto build_gen = std::bind(std::ref(build_normal), std::ref(build_engine));
+    auto d = build_map<io::dict<int, int>>(lookup_test_size, build_gen);
+
+    std::uniform_int_distribution<std::size_t> normal(0, 16 * lookup_test_size - 1);
     std::mt19937 engine;
     auto gen = std::bind(std::ref(normal), std::ref(engine));
 
     meter.measure([&, gen] { return lookup_test(d, gen); });
 })
 
-NONIUS_BENCHMARK("umap lookup", [](nonius::chronometer meter) {
-    auto d = build_map<std::unordered_map<int, int>>(lookup_test_size);
+NONIUS_BENCHMARK("umap lookup with many misses", [](nonius::chronometer meter) {
+    std::uniform_int_distribution<std::size_t> build_normal(0, lookup_test_size - 1);
+    std::mt19937 build_engine;
+    auto build_gen = std::bind(std::ref(build_normal), std::ref(build_engine));
+    auto d = build_map<std::unordered_map<int, int>>(lookup_test_size, build_gen);
 
-    std::uniform_int_distribution<std::size_t> normal(0, d.size() - 1);
+    std::uniform_int_distribution<std::size_t> normal(0, 16 * lookup_test_size - 1);
     std::mt19937 engine;
     auto gen = std::bind(std::ref(normal), std::ref(engine));
 
@@ -154,11 +201,48 @@ NONIUS_BENCHMARK("umap lookup", [](nonius::chronometer meter) {
 })
 
 #ifdef WITH_GOOGLE_BENCH
-NONIUS_BENCHMARK("google lookup", [](nonius::chronometer meter) {
+NONIUS_BENCHMARK("google lookup with many misses", [](nonius::chronometer meter) {
+    std::uniform_int_distribution<std::size_t> build_normal(0, lookup_test_size - 1);
+    std::mt19937 build_engine;
+    auto build_gen = std::bind(std::ref(build_normal), std::ref(build_engine));
     auto d =
-        build_map_google<google::dense_hash_map<int, int>>(lookup_test_size);
+        build_map_google<google::dense_hash_map<int, int>>(lookup_test_size, build_gen);
 
-    std::uniform_int_distribution<std::size_t> normal(0, d.size() - 1);
+    std::uniform_int_distribution<std::size_t> normal(0, 16 * d.size() - 1);
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+
+    meter.measure([&, gen] { return lookup_test(d, gen); });
+})
+#endif
+
+// TODO(improve) - this hits us hard
+NONIUS_BENCHMARK("dict lookup with heavy clustering", [](nonius::chronometer meter) {
+    auto d = build_map<io::dict<int, int>>(lookup_test_size, inc_gen());
+
+    std::uniform_int_distribution<std::size_t> normal(0, 16 * lookup_test_size - 1);
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+
+    meter.measure([&, gen] { return lookup_test(d, gen); });
+})
+
+NONIUS_BENCHMARK("umap lookup with heavy clustering", [](nonius::chronometer meter) {
+    auto d = build_map<std::unordered_map<int, int>>(lookup_test_size, inc_gen());
+
+    std::uniform_int_distribution<std::size_t> normal(0, 16 * lookup_test_size - 1);
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+
+    meter.measure([&, gen] { return lookup_test(d, gen); });
+})
+
+#ifdef WITH_GOOGLE_BENCH
+NONIUS_BENCHMARK("google lookup with heavy clustering", [](nonius::chronometer meter) {
+    auto d =
+        build_map_google<google::dense_hash_map<int, int>>(lookup_test_size, inc_gen());
+
+    std::uniform_int_distribution<std::size_t> normal(0, 16 * d.size() - 1);
     std::mt19937 engine;
     auto gen = std::bind(std::ref(normal), std::ref(engine));
 
@@ -169,16 +253,16 @@ NONIUS_BENCHMARK("google lookup", [](nonius::chronometer meter) {
 const int build_test_size = 1000;
 
 NONIUS_BENCHMARK("dict build", [] {
-    return build_map<io::dict<int, int>>(build_test_size);
+    return build_map<io::dict<int, int>>(build_test_size, inc_gen());
 })
 
 NONIUS_BENCHMARK("umap build", [] {
-    return build_map<std::unordered_map<int, int>>(build_test_size);
+    return build_map<std::unordered_map<int, int>>(build_test_size, inc_gen());
 })
 
 #ifdef WITH_GOOGLE_BENCH
 NONIUS_BENCHMARK("google build", [] {
-    return build_map_google<google::dense_hash_map<int, int>>(build_test_size);
+    return build_map_google<google::dense_hash_map<int, int>>(build_test_size, inc_gen());
 })
 #endif
 
@@ -193,7 +277,7 @@ NONIUS_BENCHMARK("umap build with reserve", [] {
 
 #ifdef WITH_GOOGLE_BENCH
 NONIUS_BENCHMARK("google build with reserve", [] {
-    return build_map_google<google::dense_hash_map<int, int>>(build_test_size);
+    return build_map_google<google::dense_hash_map<int, int>>(build_test_size, inc_gen());
 })
 #endif
 
