@@ -7,6 +7,7 @@
 #include <boost/iterator/iterator_facade.hpp>
 
 #include "key_value.hpp"
+#include "entry.hpp"
 
 namespace io {
 
@@ -20,7 +21,7 @@ class dict_iterator_base
 public:
     dict_iterator_base() : _ptr(), _end() {}
     dict_iterator_base(Iter p, Iter end) : _ptr(p), _end(end) {
-        if (_ptr != _end && !std::get<0>(*_ptr)) {
+        if (_ptr != _end && !_ptr->used) {
             increment();
         }
     }
@@ -39,7 +40,7 @@ private:
     void increment() {
         do {
             ++_ptr;
-        } while (_ptr != _end && !std::get<0>(*_ptr));
+        } while (_ptr != _end && !_ptr->used);
     }
 
     template <typename OtherValue, typename OtherIter>
@@ -47,7 +48,7 @@ private:
         return this->_ptr == other._ptr;
     }
 
-    value_type& dereference() const { return std::get<1>(*_ptr).const_view; }
+    value_type& dereference() const { return _ptr->kv.const_view; }
 
     Iter _ptr;
     const Iter _end;
@@ -56,13 +57,12 @@ private:
 template <typename Key, typename Value>
 using dict_iterator = dict_iterator_base<
     std::pair<const Key, Value>,
-    typename std::vector<std::tuple<bool, key_value<Key, Value>>>::iterator>;
+    typename std::vector<detail::dict_entry<Key, Value>>::iterator>;
 
 template <typename Key, typename Value>
-using const_dict_iterator =
-    dict_iterator_base<const std::pair<const Key, Value>,
-                       typename std::vector<std::tuple<
-                           bool, key_value<Key, Value>>>::const_iterator>;
+using const_dict_iterator = dict_iterator_base<
+    const std::pair<const Key, Value>,
+    typename std::vector<detail::dict_entry<Key, Value>>::const_iterator>;
 
 } // detail
 

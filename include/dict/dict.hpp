@@ -9,6 +9,7 @@
 #include "detail/prime.hpp"
 #include "detail/key_value.hpp"
 #include "detail/iterator.hpp"
+#include "detail/entry.hpp"
 
 namespace io {
 
@@ -27,7 +28,7 @@ public:
     typedef std::pair<const Key, Value> value_type;
 
 private:
-    typedef std::tuple<bool, detail::key_value<Key, Value>> entry_type;
+    typedef detail::dict_entry<Key, Value> entry_type;
     typedef typename std::allocator_traits<Allocator>::template rebind_alloc<
         entry_type> _internal_allocator;
     typedef std::vector<entry_type, _internal_allocator> table_type;
@@ -97,9 +98,7 @@ public:
         return _table.get_allocator();
     }
 
-    iterator begin() noexcept {
-        return { _table.begin(), _table.end() };
-    }
+    iterator begin() noexcept { return { _table.begin(), _table.end() }; }
 
     const_iterator begin() const noexcept {
         return { _table.begin(), _table.end() };
@@ -109,9 +108,7 @@ public:
         return { _table.begin(), _table.end() };
     }
 
-    iterator end() noexcept {
-        return { _table.end(), _table.end(), true };
-    }
+    iterator end() noexcept { return { _table.end(), _table.end(), true }; }
 
     const_iterator end() const noexcept {
         return { _table.end(), _table.end(), true };
@@ -238,7 +235,7 @@ public:
     iterator find(const Key& key) {
         auto index = find_index(key);
 
-        if (std::get<0>(_table[index])) {
+        if (_table[index].used) {
             return iterator_from_index(index);
         } else {
             return end();
@@ -248,7 +245,7 @@ public:
     const_iterator find(const Key& key) const {
         auto index = find_index(key);
 
-        if (std::get<0>(_table[index])) {
+        if (_table[index].used) {
             return iterator_from_index(index);
         } else {
             return end();
@@ -258,8 +255,8 @@ public:
     Value& at(const Key& key) {
         auto index = find_index(key);
 
-        if (std::get<0>(_table[index])) {
-            return std::get<1>(_table[index]).view.second;
+        if (_table[index].used) {
+            return _table[index].kv.view.second;
         }
 
         throw std::out_of_range("Key not in dict");
@@ -268,8 +265,8 @@ public:
     const Value& at(const Key& key) const {
         auto index = find_index(key);
 
-        if (std::get<0>(_table[index])) {
-            return std::get<1>(_table[index]).view.second;
+        if (_table[index].used) {
+            return _table[index].kv.view.second;
         }
 
         throw std::out_of_range("Key not in dict");
@@ -289,8 +286,8 @@ public:
     Value& operator[](const Key& key) {
         auto index = find_index(key);
 
-        if (std::get<0>(_table[index])) {
-            return std::get<1>(_table[index]).view.second;
+        if (_table[index].used) {
+            return _table[index].kv.view.second;
         } else {
             check_expand();
             return activate_element(find_index(key), key);
@@ -329,9 +326,9 @@ public:
             new_table.resize(next_size(new_size, max_load_factor()));
 
             for (auto&& e : _table) {
-                if (std::get<0>(e)) {
+                if (e.used) {
                     auto new_index =
-                        find_index_impl(std::get<1>(e).view.first, new_table);
+                        find_index_impl(e.kv.view.first, new_table);
                     new_table[new_index] = std::move_if_noexcept(e);
                 }
             }
@@ -361,9 +358,9 @@ private:
     std::pair<iterator, bool> insert_entry(Args&&... args) {
         check_expand();
         auto new_entry = make_entry(std::forward<Args>(args)...);
-        auto index = find_index(std::get<1>(new_entry).view.first);
+        auto index = find_index(new_entry.kv.view.first);
 
-        if (std::get<0>(_table[index])) {
+        if (_table[index].used) {
             return { iterator_from_index(index), false };
         } else {
             _table[index] = std::move(new_entry);
@@ -378,7 +375,7 @@ private:
         check_expand();
         auto index = find_index(key);
 
-        if (std::get<0>(_table[index])) {
+        if (_table[index].used) {
             return { iterator_from_index(index), false };
         } else {
             _table[index] = make_entry(std::forward<KeyParam>(key),
@@ -395,9 +392,8 @@ private:
         check_expand();
         auto index = find_index(key);
 
-        if (std::get<0>(_table[index])) {
-            std::get<1>(_table[index]).view.second =
-                std::forward<Mapped>(mapped);
+        if (_table[index].used) {
+            _table[index].kv.view.second = std::forward<Mapped>(mapped);
             return { iterator_from_index(index), false };
         } else {
             _table[index] = make_entry(std::forward<KeyParam>(key),
@@ -409,17 +405,17 @@ private:
 
     // marks element at given index as in the map
     Value& activate_element(size_type index, const Key& key) {
-        std::get<0>(_table[index]) = true;
-        std::get<1>(_table[index]).view.first = key;
+        _table[index].used = true;
+        _table[index].kv.view.first = key;
         ++_element_count;
 
-        return std::get<1>(_table[index]).view.second;
+        return _table[index].kv.view.second;
     }
 
     std::pair<size_type, iterator> erase_impl(const Key& key) {
         auto index = find_index(key);
 
-        if (!std::get<0>(_table[index])) {
+        if (!_table[index].used) {
             return { 0, {} };
         }
 
@@ -431,12 +427,13 @@ private:
         while (true) {
             delete_index = next_index(delete_index);
 
-            if (!std::get<0>(_table[delete_index])) {
-                return { 1, { std::next(_table.begin(), deleted_index), _table.end() } };
+            if (!_table[delete_index].used) {
+                return { 1,
+                         { std::next(_table.begin(), deleted_index),
+                           _table.end() } };
             }
 
-            auto new_key =
-                hash_index(std::get<1>(_table[delete_index]).view.first);
+            auto new_key = hash_index(_table[delete_index].kv.view.first);
 
             if ((index <= delete_index)
                     ? ((index < new_key) && (new_key <= delete_index))
@@ -458,8 +455,8 @@ private:
     size_type find_index_impl(const Key& key, const table_type& table) const {
         auto index = hash_index_impl(key, table);
 
-        while (std::get<0>(table[index])) {
-            if (_key_equal(std::get<1>(table[index]).view.first, key)) {
+        while (table[index].used) {
+            if (_key_equal(table[index].kv.view.first, key)) {
                 return index;
             }
 
@@ -488,13 +485,12 @@ private:
 
     template <typename... Args>
     entry_type make_entry(Args&&... args) const {
-        return std::make_tuple(
-            true, detail::key_value<Key, Value>(std::forward<Args>(args)...));
+        return { detail::key_value<Key, Value>(std::forward<Args>(args)...),
+                 true };
     }
 
     entry_type empty_slot_factory() const {
-        return std::make_tuple(false,
-                               detail::key_value<Key, Value>(Key(), Value()));
+        return { detail::key_value<Key, Value>(Key(), Value()), false };
     }
 
     iterator iterator_from_index(size_type index) {
