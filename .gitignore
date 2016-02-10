@@ -26,3 +26,5 @@ makefile
 examples/test_main
 
 perf/test_main
+
+perf/perf.hist.*
