@@ -20,30 +20,45 @@ struct inc_gen {
     int _counter = 0;
 };
 
-template <typename Map>
-void insert_test(Map& map) {
+template <typename Map, typename Generator>
+void insert_test(Map& map, Generator& gen) {
     for (int i = 0; i != 10000; ++i) {
-        map[i] = i;
+        map[gen()] = i;
     }
 }
 
 NONIUS_BENCHMARK("dict insert", [](nonius::chronometer meter) {
     io::dict<int, int> d;
     d.reserve(1000);
-    meter.measure([&] { insert_test(d); });
+
+    std::uniform_int_distribution<std::size_t> normal(0, 1000000);
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+
+    meter.measure([&, gen] { insert_test(d, gen); });
 })
 
 NONIUS_BENCHMARK("umap insert", [](nonius::chronometer meter) {
     std::unordered_map<int, int> d;
     d.reserve(1000);
-    meter.measure([&] { insert_test(d); });
+
+    std::uniform_int_distribution<std::size_t> normal(0, 1000000);
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+
+    meter.measure([&, gen] { insert_test(d, gen); });
 })
 
 #ifdef WITH_GOOGLE_BENCH
 NONIUS_BENCHMARK("google insert", [](nonius::chronometer meter) {
     google::dense_hash_map<int, int> d(1000);
     d.set_empty_key(0);
-    meter.measure([&] { insert_test(d); });
+
+    std::uniform_int_distribution<std::size_t> normal(0, 1000000);
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+
+    meter.measure([&, gen] { insert_test(d, gen); });
 })
 #endif
 
@@ -99,7 +114,10 @@ template <typename Map, typename Generator>
 int lookup_test(Map& map, Generator& gen) {
     int res = 0;
     for (std::size_t i = 0; i < 100; i += 1) {
-        res += map[gen()];
+        auto it = map.find(gen());
+        if (it != map.end()) {
+            res += it->second;
+        }
     }
 
     return res;
@@ -171,6 +189,46 @@ NONIUS_BENCHMARK("google lookup", [](nonius::chronometer meter) {
         build_map_google<google::dense_hash_map<int, int>>(lookup_test_size, gen);
 
     meter.measure([&, gen] { return lookup_test(d, gen); });
+})
+#endif
+
+template <typename Map, typename Generator>
+int hybrid_test(Map& map, Generator& gen) {
+    int res = 0;
+    for (std::size_t i = 0; i < 100; i += 1) {
+        res += map[gen()];
+    }
+
+    return res;
+}
+
+NONIUS_BENCHMARK("dict operator[]", [](nonius::chronometer meter) {
+    std::uniform_int_distribution<std::size_t> normal(0, 2 * lookup_test_size - 1);
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+    auto d = build_map<io::dict<int, int>>(lookup_test_size, gen);
+
+    meter.measure([&, gen] { return hybrid_test(d, gen); });
+})
+
+NONIUS_BENCHMARK("umap operator[]", [](nonius::chronometer meter) {
+    std::uniform_int_distribution<std::size_t> normal(0, 2 * lookup_test_size - 1);
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+    auto d = build_map<std::unordered_map<int, int>>(lookup_test_size, gen);
+
+    meter.measure([&, gen] { return hybrid_test(d, gen); });
+})
+
+#ifdef WITH_GOOGLE_BENCH
+NONIUS_BENCHMARK("google operator[]", [](nonius::chronometer meter) {
+    std::uniform_int_distribution<std::size_t> normal(0, 2 * lookup_test_size - 1);
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+    auto d =
+        build_map_google<google::dense_hash_map<int, int>>(lookup_test_size, gen);
+
+    meter.measure([&, gen] { return hybrid_test(d, gen); });
 })
 #endif
 
@@ -330,7 +388,7 @@ template <typename Map, typename LookUpKeys>
 int string_lookup_test(Map& map, const LookUpKeys& keys) {
     int res = 0;
     for (auto&& k : keys) {
-        res += map[k];
+        res += map.find(k)->second;
     }
 
     return res;
