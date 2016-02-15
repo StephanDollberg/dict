@@ -10,8 +10,7 @@ ifeq ($(UNAME), Darwin)
 	LIBS=
 endif
 
-INCLUDES = -Inonius/include
-ARGS= -std=c++11 -O3 -DNDEBUG -Wall -W -Wextra -pedantic-errors $(INCLUDES) $(DEFINES) $(blah)
+ARGS= -std=c++11 -pthread -O3 -DNDEBUG -Wall -W -Wextra -pedantic-errors $(INCLUDES) $(DEFINES)
 
 ifeq ($(CXX),clang++-3.5)
 	ADD_INC_FLAGS = -nostdinc++ -I/usr/local/lib/llvm-3.5/include/c++/v1 -fno-omit-frame-pointer
@@ -36,7 +35,7 @@ all: test_main
 	$(CXX) $(standard_library) $(ARGS) $(CXXFLAGS) $(ADD_INC_FLAGS) -c $< -o $@
 
 test_main: $(OBJS)
-	$(CXX) $(standard_library) $(ARGS) $(LDFLAGS) $(OBJS) -o $@ $(LIBS) $(ADD_LIB_FLAGS)
+	$(CXX) $(standard_library) $(ARGS) $(LDFLAGS) $(OBJS) -o $@ $(LIBS) $(ADD_LIB_FLAGS) -lbenchmark
 
 with_google: DEFINES = -DWITH_GOOGLE_BENCH
 with_google: test_main
