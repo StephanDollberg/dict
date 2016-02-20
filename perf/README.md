@@ -1,21 +1,15 @@
 Performance Tests
 ===
-This folder contains the performance tests. For measuring [nonius](https://code.google.com/p/sparsehash/) is used. 
+This folder contains the performance tests. For doing performance measurements [google-benchmark](https://github.com/google/benchmark) is used. 
 
 So far these tests are only micro-benchmarks. Especially on larger maps they show a speedup of about a factor of two to a factor of 10 in comparison to `std::unordered_map`. Performance is about the same as google-densehashmap.
 
 I would highly appreciate feedback and input on further benchmarks and especially on ideas/places for application benchmarks.
 
 #### Running
-First run a 
+First install `google-benchmark` either via your package manager or manually via cmake.
 
-```
-git submodule init
-git submodule update
-```
-to fetch nonius.
-
-To build:
+Once, `google-benchmark` is installed just run:
 
 ```
 make
