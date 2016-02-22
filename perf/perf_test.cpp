@@ -10,6 +10,10 @@
 
 #include <benchmark/benchmark.h>
 
+
+const int lookup_test_size = 1000000;
+const int small_lookup_test_size = 10;
+
 struct inc_gen {
     int operator()() { return _counter++; }
 
@@ -118,104 +122,6 @@ Map build_map_with_reserve(int size) {
     return d;
 }
 
-template <typename Map, typename Generator>
-int lookup_test(Map& map, Generator& gen) {
-    int res = 0;
-    for (std::size_t i = 0; i < 100; i += 1) {
-        auto it = map.find(gen());
-        if (it != map.end()) {
-            res += it->second;
-        }
-    }
-
-    return res;
-}
-
-const int small_lookup_test_size = 10;
-
-static void dict_lookup_small(benchmark::State& state) {
-    auto d = build_map<io::dict<int, int>>(small_lookup_test_size, inc_gen());
-
-    std::uniform_int_distribution<std::size_t> normal(0, d.size() - 1);
-    std::mt19937 engine;
-    auto gen = std::bind(std::ref(normal), std::ref(engine));
-
-    while (state.KeepRunning()) {
-        benchmark::DoNotOptimize(lookup_test(d, gen));
-    }
-}
-BENCHMARK(dict_lookup_small);
-
-static void umap_lookup_small(benchmark::State& state) {
-    auto d = build_map<std::unordered_map<int, int>>(small_lookup_test_size,
-                                                     inc_gen());
-
-    std::uniform_int_distribution<std::size_t> normal(0, d.size() - 1);
-    std::mt19937 engine;
-    auto gen = std::bind(std::ref(normal), std::ref(engine));
-
-    while (state.KeepRunning()) {
-        benchmark::DoNotOptimize(lookup_test(d, gen));
-    }
-}
-BENCHMARK(umap_lookup_small);
-
-#ifdef WITH_GOOGLE_BENCH
-static void google_lookup_small(benchmark::State& state) {
-    auto d = build_map_google<google::dense_hash_map<int, int>>(
-        small_lookup_test_size, inc_gen());
-
-    std::uniform_int_distribution<std::size_t> normal(0, d.size() - 1);
-    std::mt19937 engine;
-    auto gen = std::bind(std::ref(normal), std::ref(engine));
-
-    while (state.KeepRunning()) {
-        benchmark::DoNotOptimize(lookup_test(d, gen));
-    }
-}
-BENCHMARK(google_lookup_small);
-#endif
-
-const int lookup_test_size = 1000000;
-
-static void dict_lookup(benchmark::State& state) {
-    std::uniform_int_distribution<std::size_t> normal(0, lookup_test_size - 1);
-    std::mt19937 engine;
-    auto gen = std::bind(std::ref(normal), std::ref(engine));
-    auto d = build_map<io::dict<int, int>>(lookup_test_size, gen);
-
-    while (state.KeepRunning()) {
-        benchmark::DoNotOptimize(lookup_test(d, gen));
-    }
-}
-BENCHMARK(dict_lookup);
-
-static void umap_lookup(benchmark::State& state) {
-    std::uniform_int_distribution<std::size_t> normal(0, lookup_test_size - 1);
-    std::mt19937 engine;
-    auto gen = std::bind(std::ref(normal), std::ref(engine));
-    auto d = build_map<std::unordered_map<int, int>>(lookup_test_size, gen);
-
-    while (state.KeepRunning()) {
-        benchmark::DoNotOptimize(lookup_test(d, gen));
-    }
-}
-BENCHMARK(umap_lookup);
-
-#ifdef WITH_GOOGLE_BENCH
-static void google_lookup(benchmark::State& state) {
-    std::uniform_int_distribution<std::size_t> normal(0, lookup_test_size - 1);
-    std::mt19937 engine;
-    auto gen = std::bind(std::ref(normal), std::ref(engine));
-    auto d = build_map_google<google::dense_hash_map<int, int>>(
-        lookup_test_size, gen);
-
-    while (state.KeepRunning()) {
-        benchmark::DoNotOptimize(lookup_test(d, gen));
-    }
-}
-BENCHMARK(google_lookup);
-#endif
 
 template <typename Map, typename Generator>
 int hybrid_test(Map& map, Generator& gen) {
@@ -319,6 +225,101 @@ static void google_hybrid_with_heavy_clustering(benchmark::State& state) {
 BENCHMARK(google_hybrid_with_heavy_clustering);
 #endif
 
+template <typename Map, typename Generator>
+int lookup_test(Map& map, Generator& gen) {
+    int res = 0;
+    for (std::size_t i = 0; i < 100; i += 1) {
+        auto it = map.find(gen());
+        if (it != map.end()) {
+            res += it->second;
+        }
+    }
+
+    return res;
+}
+
+static void dict_lookup_small(benchmark::State& state) {
+    auto d = build_map<io::dict<int, int>>(small_lookup_test_size, inc_gen());
+
+    std::uniform_int_distribution<std::size_t> normal(0, d.size() - 1);
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+
+    while (state.KeepRunning()) {
+        benchmark::DoNotOptimize(lookup_test(d, gen));
+    }
+}
+BENCHMARK(dict_lookup_small);
+
+static void umap_lookup_small(benchmark::State& state) {
+    auto d = build_map<std::unordered_map<int, int>>(small_lookup_test_size,
+                                                     inc_gen());
+
+    std::uniform_int_distribution<std::size_t> normal(0, d.size() - 1);
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+
+    while (state.KeepRunning()) {
+        benchmark::DoNotOptimize(lookup_test(d, gen));
+    }
+}
+BENCHMARK(umap_lookup_small);
+
+#ifdef WITH_GOOGLE_BENCH
+static void google_lookup_small(benchmark::State& state) {
+    auto d = build_map_google<google::dense_hash_map<int, int>>(
+        small_lookup_test_size, inc_gen());
+
+    std::uniform_int_distribution<std::size_t> normal(0, d.size() - 1);
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+
+    while (state.KeepRunning()) {
+        benchmark::DoNotOptimize(lookup_test(d, gen));
+    }
+}
+BENCHMARK(google_lookup_small);
+#endif
+
+
+static void dict_lookup(benchmark::State& state) {
+    std::uniform_int_distribution<std::size_t> normal(0, lookup_test_size - 1);
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+    auto d = build_map<io::dict<int, int>>(lookup_test_size, gen);
+
+    while (state.KeepRunning()) {
+        benchmark::DoNotOptimize(lookup_test(d, gen));
+    }
+}
+BENCHMARK(dict_lookup);
+
+static void umap_lookup(benchmark::State& state) {
+    std::uniform_int_distribution<std::size_t> normal(0, lookup_test_size - 1);
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+    auto d = build_map<std::unordered_map<int, int>>(lookup_test_size, gen);
+
+    while (state.KeepRunning()) {
+        benchmark::DoNotOptimize(lookup_test(d, gen));
+    }
+}
+BENCHMARK(umap_lookup);
+
+#ifdef WITH_GOOGLE_BENCH
+static void google_lookup(benchmark::State& state) {
+    std::uniform_int_distribution<std::size_t> normal(0, lookup_test_size - 1);
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+    auto d = build_map_google<google::dense_hash_map<int, int>>(
+        lookup_test_size, gen);
+
+    while (state.KeepRunning()) {
+        benchmark::DoNotOptimize(lookup_test(d, gen));
+    }
+}
+BENCHMARK(google_lookup);
+#endif
 
 static void dict_lookup_with_many_misses(benchmark::State& state) {
     std::uniform_int_distribution<std::size_t> build_normal(
