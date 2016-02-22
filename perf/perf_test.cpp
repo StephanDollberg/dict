@@ -272,6 +272,54 @@ static void google_hybrid(benchmark::State& state) {
 BENCHMARK(google_hybrid);
 #endif
 
+// TODO(improve) - this hits us hard
+static void dict_hybrid_with_heavy_clustering(benchmark::State& state) {
+    auto d = build_map<io::dict<int, int>>(lookup_test_size, inc_gen());
+
+    std::uniform_int_distribution<std::size_t> normal(0, 16 * lookup_test_size -
+                                                             1);
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+
+    while (state.KeepRunning()) {
+        benchmark::DoNotOptimize(hybrid_test(d, gen));
+    }
+}
+BENCHMARK(dict_hybrid_with_heavy_clustering);
+
+static void umap_hybrid_with_heavy_clustering(benchmark::State& state) {
+    auto d =
+        build_map<std::unordered_map<int, int>>(lookup_test_size, inc_gen());
+
+    std::uniform_int_distribution<std::size_t> normal(0, 16 * lookup_test_size -
+                                                             1);
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+
+    while (state.KeepRunning()) {
+        benchmark::DoNotOptimize(hybrid_test(d, gen));
+    }
+}
+BENCHMARK(umap_hybrid_with_heavy_clustering);
+
+#ifdef WITH_GOOGLE_BENCH
+static void google_hybrid_with_heavy_clustering(benchmark::State& state) {
+    auto d = build_map_google<google::dense_hash_map<int, int>>(
+        lookup_test_size, inc_gen());
+
+    std::uniform_int_distribution<std::size_t> normal(0, 16 * lookup_test_size -
+                                                             1);
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+
+    while (state.KeepRunning()) {
+        benchmark::DoNotOptimize(hybrid_test(d, gen));
+    }
+}
+BENCHMARK(google_hybrid_with_heavy_clustering);
+#endif
+
+
 static void dict_lookup_with_many_misses(benchmark::State& state) {
     std::uniform_int_distribution<std::size_t> build_normal(
         0, lookup_test_size - 1);
