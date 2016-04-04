@@ -337,7 +337,7 @@ BENCHMARK(google_lookup_small);
 
 
 static void dict_lookup(benchmark::State& state) {
-    std::uniform_int_distribution<std::size_t> normal(0, lookup_test_size - 1);
+    std::uniform_int_distribution<std::size_t> normal(0, 2 * lookup_test_size - 1);
     std::mt19937 engine;
     auto gen = std::bind(std::ref(normal), std::ref(engine));
     auto d = build_map<io::dict<int, int>>(lookup_test_size, gen);
@@ -349,7 +349,7 @@ static void dict_lookup(benchmark::State& state) {
 BENCHMARK(dict_lookup);
 
 static void umap_lookup(benchmark::State& state) {
-    std::uniform_int_distribution<std::size_t> normal(0, lookup_test_size - 1);
+    std::uniform_int_distribution<std::size_t> normal(0, 2 * lookup_test_size - 1);
     std::mt19937 engine;
     auto gen = std::bind(std::ref(normal), std::ref(engine));
     auto d = build_map<std::unordered_map<int, int>>(lookup_test_size, gen);
@@ -362,7 +362,7 @@ BENCHMARK(umap_lookup);
 
 #ifdef WITH_GOOGLE_BENCH
 static void google_lookup(benchmark::State& state) {
-    std::uniform_int_distribution<std::size_t> normal(0, lookup_test_size - 1);
+    std::uniform_int_distribution<std::size_t> normal(0, 2 * lookup_test_size - 1);
     std::mt19937 engine;
     auto gen = std::bind(std::ref(normal), std::ref(engine));
     auto d = build_map_google<google::dense_hash_map<int, int>>(
