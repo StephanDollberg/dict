@@ -13,11 +13,18 @@
 
 const int lookup_test_size = 1000000;
 const int small_lookup_test_size = 10;
+const int collision_test_size = 10000;
 
 struct inc_gen {
     int operator()() { return _counter++; }
 
     int _counter = 0;
+};
+
+struct collision_hasher {
+    std::size_t operator()(int) const {
+        return 1;
+    }
 };
 
 // Note that we keep benching on the same instance of the d
@@ -225,6 +232,53 @@ static void google_hybrid_with_heavy_clustering(benchmark::State& state) {
 BENCHMARK(google_hybrid_with_heavy_clustering);
 #endif
 
+
+static void dict_hybrid_with_only_collisions(benchmark::State& state) {
+    auto d = build_map<io::dict<int, int, collision_hasher>>(collision_test_size, inc_gen());
+
+    std::uniform_int_distribution<std::size_t> normal(0, 16 * collision_test_size -
+                                                             1);
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+
+    while (state.KeepRunning()) {
+        benchmark::DoNotOptimize(hybrid_test(d, gen));
+    }
+}
+BENCHMARK(dict_hybrid_with_only_collisions);
+
+static void umap_hybrid_with_only_collisions(benchmark::State& state) {
+    auto d =
+        build_map<std::unordered_map<int, int, collision_hasher>>(collision_test_size, inc_gen());
+
+    std::uniform_int_distribution<std::size_t> normal(0, 16 * collision_test_size -
+                                                             1);
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+
+    while (state.KeepRunning()) {
+        benchmark::DoNotOptimize(hybrid_test(d, gen));
+    }
+}
+BENCHMARK(umap_hybrid_with_only_collisions);
+
+#ifdef WITH_GOOGLE_BENCH
+static void google_hybrid_with_only_collisions(benchmark::State& state) {
+    auto d = build_map_google<google::dense_hash_map<int, int, collision_hasher>>(
+        collision_test_size, inc_gen());
+
+    std::uniform_int_distribution<std::size_t> normal(0, 16 * collision_test_size -
+                                                             1);
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+
+    while (state.KeepRunning()) {
+        benchmark::DoNotOptimize(hybrid_test(d, gen));
+    }
+}
+BENCHMARK(google_hybrid_with_only_collisions);
+#endif
+
 template <typename Map, typename Generator>
 int lookup_test(Map& map, Generator& gen) {
     int res = 0;
@@ -320,6 +374,7 @@ static void google_lookup(benchmark::State& state) {
 }
 BENCHMARK(google_lookup);
 #endif
+
 
 static void dict_lookup_with_many_misses(benchmark::State& state) {
     std::uniform_int_distribution<std::size_t> build_normal(
@@ -423,6 +478,45 @@ static void google_lookup_with_heavy_clustering(benchmark::State& state) {
     }
 }
 BENCHMARK(google_lookup_with_heavy_clustering);
+#endif
+
+static void dict_lookup_with_only_collisions(benchmark::State& state) {
+    std::uniform_int_distribution<std::size_t> normal(0, collision_test_size - 1);
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+    auto d = build_map<io::dict<int, int, collision_hasher>>(16 * collision_test_size, gen);
+
+    while (state.KeepRunning()) {
+        benchmark::DoNotOptimize(lookup_test(d, gen));
+    }
+}
+BENCHMARK(dict_lookup_with_only_collisions);
+
+static void umap_lookup_with_only_collisions(benchmark::State& state) {
+    std::uniform_int_distribution<std::size_t> normal(0, collision_test_size - 1);
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+    auto d = build_map<std::unordered_map<int, int, collision_hasher>>(16 * collision_test_size, gen);
+
+    while (state.KeepRunning()) {
+        benchmark::DoNotOptimize(lookup_test(d, gen));
+    }
+}
+BENCHMARK(umap_lookup_with_only_collisions);
+
+#ifdef WITH_GOOGLE_BENCH
+static void google_lookup_with_only_collisions(benchmark::State& state) {
+    std::uniform_int_distribution<std::size_t> normal(0, collision_test_size - 1);
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+    auto d = build_map_google<google::dense_hash_map<int, int, collision_hasher>>(
+        16 * collision_test_size, gen);
+
+    while (state.KeepRunning()) {
+        benchmark::DoNotOptimize(lookup_test(d, gen));
+    }
+}
+BENCHMARK(google_lookup_with_only_collisions);
 #endif
 
 const int build_test_size = 1000;
