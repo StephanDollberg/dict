@@ -26,8 +26,8 @@ struct collision_hasher {
 // Alternative with creating a per run instance would make us always test on
 // cold data
 template <typename Map, typename Generator>
-void insert_test(Map& map, Generator& gen) {
-    for (int i = 0; i != 10000; ++i) {
+void insert_test(Map& map, Generator& gen, int insert_num) {
+    for (int i = 0; i != insert_num; ++i) {
         map[gen()] = i;
     }
 }
@@ -35,14 +35,14 @@ void insert_test(Map& map, Generator& gen) {
 static void dict_insert(benchmark::State& state) {
     const int test_size = state.range_x();
     io::dict<int, int> d;
-    d.reserve(20000);
+    d.reserve(test_size);
 
-    std::uniform_int_distribution<std::size_t> normal(0, test_size);
+    std::uniform_int_distribution<std::size_t> normal(0, 2 * test_size);
     std::mt19937 engine;
     auto gen = std::bind(std::ref(normal), std::ref(engine));
 
     while (state.KeepRunning()) {
-        insert_test(d, gen);
+        insert_test(d, gen, test_size);
     }
 }
 BENCHMARK(dict_insert)
@@ -51,14 +51,14 @@ BENCH_SIZES;
 static void umap_insert(benchmark::State& state) {
     const int test_size = state.range_x();
     std::unordered_map<int, int> d;
-    d.reserve(20000);
+    d.reserve(test_size);
 
-    std::uniform_int_distribution<std::size_t> normal(0, test_size);
+    std::uniform_int_distribution<std::size_t> normal(0, 2 * test_size);
     std::mt19937 engine;
     auto gen = std::bind(std::ref(normal), std::ref(engine));
 
     while (state.KeepRunning()) {
-        insert_test(d, gen);
+        insert_test(d, gen, test_size);
     }
 }
 BENCHMARK(umap_insert)
@@ -67,15 +67,15 @@ BENCH_SIZES;
 #ifdef WITH_GOOGLE_BENCH
 static void goog_insert(benchmark::State& state) {
     const int test_size = state.range_x();
-    google::dense_hash_map<int, int> d(20000);
+    google::dense_hash_map<int, int> d(test_size);
     d.set_empty_key(0);
 
-    std::uniform_int_distribution<std::size_t> normal(0, test_size);
+    std::uniform_int_distribution<std::size_t> normal(0, 2 * test_size);
     std::mt19937 engine;
     auto gen = std::bind(std::ref(normal), std::ref(engine));
 
     while (state.KeepRunning()) {
-        insert_test(d, gen);
+        insert_test(d, gen, test_size);
     }
 }
 BENCHMARK(goog_insert)
