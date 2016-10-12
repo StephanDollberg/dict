@@ -42,7 +42,10 @@ static void dict_insert(benchmark::State& state) {
     auto gen = std::bind(std::ref(normal), std::ref(engine));
 
     while (state.KeepRunning()) {
-        insert_test(d, gen, test_size);
+        state.PauseTiming();
+        auto temporary_d = d;
+        state.ResumeTiming();
+        insert_test(temporary_d, gen, test_size);
     }
 }
 BENCHMARK(dict_insert)
@@ -58,7 +61,10 @@ static void umap_insert(benchmark::State& state) {
     auto gen = std::bind(std::ref(normal), std::ref(engine));
 
     while (state.KeepRunning()) {
-        insert_test(d, gen, test_size);
+        state.PauseTiming();
+        auto temporary_d = d;
+        state.ResumeTiming();
+        insert_test(temporary_d, gen, test_size);
     }
 }
 BENCHMARK(umap_insert)
@@ -75,7 +81,10 @@ static void goog_insert(benchmark::State& state) {
     auto gen = std::bind(std::ref(normal), std::ref(engine));
 
     while (state.KeepRunning()) {
-        insert_test(d, gen, test_size);
+        state.PauseTiming();
+        auto temporary_d = d;
+        state.ResumeTiming();
+        insert_test(temporary_d, gen, test_size);
     }
 }
 BENCHMARK(goog_insert)
@@ -151,7 +160,10 @@ static void dict_hybrid(benchmark::State& state) {
     auto d = build_map<io::dict<int, int>>(test_size, gen);
 
     while (state.KeepRunning()) {
-        benchmark::DoNotOptimize(hybrid_test(d, gen));
+        state.PauseTiming();
+        auto temporary_d = d;
+        state.ResumeTiming();
+        benchmark::DoNotOptimize(hybrid_test(temporary_d, gen));
     }
 }
 BENCHMARK(dict_hybrid)
@@ -165,7 +177,10 @@ static void umap_hybrid(benchmark::State& state) {
     auto d = build_map<std::unordered_map<int, int>>(test_size, gen);
 
     while (state.KeepRunning()) {
-        benchmark::DoNotOptimize(hybrid_test(d, gen));
+        state.PauseTiming();
+        auto temporary_d = d;
+        state.ResumeTiming();
+        benchmark::DoNotOptimize(hybrid_test(temporary_d, gen));
     }
 }
 BENCHMARK(umap_hybrid)
@@ -180,7 +195,10 @@ static void goog_hybrid(benchmark::State& state) {
     auto d = build_map_google<google::dense_hash_map<int, int>>(test_size, gen);
 
     while (state.KeepRunning()) {
-        benchmark::DoNotOptimize(hybrid_test(d, gen));
+        state.PauseTiming();
+        auto temporary_d = d;
+        state.ResumeTiming();
+        benchmark::DoNotOptimize(hybrid_test(temporary_d, gen));
     }
 }
 BENCHMARK(goog_hybrid)
@@ -197,7 +215,10 @@ static void dict_hybrid_with_heavy_clustering(benchmark::State& state) {
     auto gen = std::bind(std::ref(normal), std::ref(engine));
 
     while (state.KeepRunning()) {
-        benchmark::DoNotOptimize(hybrid_test(d, gen));
+        state.PauseTiming();
+        auto temporary_d = d;
+        state.ResumeTiming();
+        benchmark::DoNotOptimize(hybrid_test(temporary_d, gen));
     }
 }
 BENCHMARK(dict_hybrid_with_heavy_clustering)
@@ -212,7 +233,10 @@ static void umap_hybrid_with_heavy_clustering(benchmark::State& state) {
     auto gen = std::bind(std::ref(normal), std::ref(engine));
 
     while (state.KeepRunning()) {
-        benchmark::DoNotOptimize(hybrid_test(d, gen));
+        state.PauseTiming();
+        auto temporary_d = d;
+        state.ResumeTiming();
+        benchmark::DoNotOptimize(hybrid_test(temporary_d, gen));
     }
 }
 BENCHMARK(umap_hybrid_with_heavy_clustering)
@@ -229,7 +253,10 @@ static void goog_hybrid_with_heavy_clustering(benchmark::State& state) {
     auto gen = std::bind(std::ref(normal), std::ref(engine));
 
     while (state.KeepRunning()) {
-        benchmark::DoNotOptimize(hybrid_test(d, gen));
+        state.PauseTiming();
+        auto temporary_d = d;
+        state.ResumeTiming();
+        benchmark::DoNotOptimize(hybrid_test(temporary_d, gen));
     }
 }
 BENCHMARK(goog_hybrid_with_heavy_clustering)
@@ -246,7 +273,10 @@ static void dict_hybrid_with_only_collisions(benchmark::State& state) {
     auto gen = std::bind(std::ref(normal), std::ref(engine));
 
     while (state.KeepRunning()) {
-        benchmark::DoNotOptimize(hybrid_test(d, gen));
+        state.PauseTiming();
+        auto temporary_d = d;
+        state.ResumeTiming();
+        benchmark::DoNotOptimize(hybrid_test(temporary_d, gen));
     }
 }
 BENCHMARK(dict_hybrid_with_only_collisions)
@@ -262,7 +292,10 @@ static void umap_hybrid_with_only_collisions(benchmark::State& state) {
     auto gen = std::bind(std::ref(normal), std::ref(engine));
 
     while (state.KeepRunning()) {
-        benchmark::DoNotOptimize(hybrid_test(d, gen));
+        state.PauseTiming();
+        auto temporary_d = d;
+        state.ResumeTiming();
+        benchmark::DoNotOptimize(hybrid_test(temporary_d, gen));
     }
 }
 BENCHMARK(umap_hybrid_with_only_collisions)
@@ -280,7 +313,10 @@ static void goog_hybrid_with_only_collisions(benchmark::State& state) {
     auto gen = std::bind(std::ref(normal), std::ref(engine));
 
     while (state.KeepRunning()) {
-        benchmark::DoNotOptimize(hybrid_test(d, gen));
+        state.PauseTiming();
+        auto temporary_d = d;
+        state.ResumeTiming();
+        benchmark::DoNotOptimize(hybrid_test(temporary_d, gen));
     }
 }
 BENCHMARK(goog_hybrid_with_only_collisions)
