@@ -45,6 +45,12 @@ struct moved_tester {
     }
 };
 
+
+std::ostream& operator<<(std::ostream& str, const moved_tester& m) {
+    str << m.var;
+    return str;
+}
+
 struct moved_tester_hasher {
     std::size_t operator()(const moved_tester& tester) const {
         return tester.var;
@@ -557,6 +563,22 @@ TEST_CASE("dict erase", "[dict][resize]") {
         CHECK(d.erase(1) == 0);
     }
 
+
+    SECTION("erase(robinhood)") {
+        io::dict<int, int, erase_move_hasher> d;
+
+        d[1] = 4;
+        d[2] = 5;
+        d[3] = 6;
+        CHECK(d.size() == 3);
+
+        CHECK(d.erase(3) == 1);
+
+        CHECK(d[1] == 4);
+        CHECK(d[2] == 5);
+        CHECK(d.size() == 2);
+    }
+
     SECTION("erase(iterator)") {
         SECTION("basic") {
             io::dict<int, int, identity_hasher> d;
@@ -595,6 +617,80 @@ TEST_CASE("dict erase", "[dict][resize]") {
         CHECK(d.size() == 0);
 
         CHECK(*ptr == true);
+    }
+}
+
+TEST_CASE("dict robin hood", "[dict][robinhood]") {
+    SECTION("find index impl") {
+        io::dict<int, int, erase_move_hasher> d;
+
+        d[1] = 4;
+        d[2] = 5;
+        d[3] = 6;
+
+        CHECK(d[1] == 4);
+        CHECK(d[2] == 5);
+        CHECK(d[3] == 6);
+        CHECK(d.size() == 3);
+    }
+
+    // following tests are implementation defined
+    SECTION("operator[]") {
+        io::dict<int, int, erase_move_hasher> d;
+
+        d[1] = 4;
+        d[2] = 5;
+        d[3] = 6;
+        CHECK(d.size() == 3);
+
+        int i = 0;
+
+        for (auto&& e : d) {
+            if (i == 0) {
+                CHECK(e.first == 1);
+                CHECK(e.second == 4);
+            } else if (i == 1) {
+                CHECK(e.first == 3);
+                CHECK(e.second == 6);
+            } else if (i == 2) {
+                CHECK(e.first == 2);
+                CHECK(e.second == 5);
+            } else {
+                CHECK(false);
+            }
+            ++i;
+        }
+
+        CHECK(d.size() == 3);
+    }
+
+    SECTION("insert") {
+        io::dict<int, int, erase_move_hasher> d;
+
+        d.try_emplace(1, 4);
+        d.try_emplace(2, 5);
+        d.emplace(3, 6);
+        CHECK(d.size() == 3);
+
+        int i = 0;
+
+        for (auto&& e : d) {
+            if (i == 0) {
+                CHECK(e.first == 1);
+                CHECK(e.second == 4);
+            } else if (i == 1) {
+                CHECK(e.first == 3);
+                CHECK(e.second == 6);
+            } else if (i == 2) {
+                CHECK(e.first == 2);
+                CHECK(e.second == 5);
+            } else {
+                CHECK(false);
+            }
+            ++i;
+        }
+
+        CHECK(d.size() == 3);
     }
 }
 
