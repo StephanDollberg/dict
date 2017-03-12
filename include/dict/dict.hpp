@@ -422,6 +422,7 @@ private:
         const auto deleted_index = index;
 
         _table[index] = empty_slot_factory();
+        --_element_count;
 
         auto delete_index = index;
         while (true) {

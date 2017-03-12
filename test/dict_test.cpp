@@ -538,6 +538,7 @@ TEST_CASE("dict erase", "[dict][resize]") {
 
         CHECK(d.erase(1) == 1);
 
+        CHECK(d.size() == 0);
         CHECK(d[1] == "");
 
         CHECK(d.erase(1) == 1);
@@ -553,7 +554,9 @@ TEST_CASE("dict erase", "[dict][resize]") {
             auto iter = d.find(1);
 
             CHECK(d.erase(iter)->second == 3);
+            CHECK(d.size() == 1);
             CHECK(d[1] == 0);
+            CHECK(d.size() == 2);
         }
         // implementation testing
         SECTION("proper iterator after reshift") {
@@ -565,7 +568,9 @@ TEST_CASE("dict erase", "[dict][resize]") {
             auto iter = d.find(1);
 
             CHECK(d.erase(iter)->second == 3);
+            CHECK(d.size() == 2);
             CHECK(d[1] == 0);
+            CHECK(d.size() == 3);
         }
     }
 
@@ -575,6 +580,7 @@ TEST_CASE("dict erase", "[dict][resize]") {
         d[0] = destructor_check(ptr);
 
         d.erase(0);
+        CHECK(d.size() == 0);
 
         CHECK(*ptr == true);
     }
