@@ -9,9 +9,17 @@
 #include "detail/prime.hpp"
 #include "detail/key_value.hpp"
 #include "detail/iterator.hpp"
+
 #include "detail/entry.hpp"
 
 namespace io {
+
+namespace detail {
+    struct insert_result {
+        std::size_t index;
+        bool key_existed;
+    };
+}
 
 // container
 template <typename Key, typename Value, typename Hasher = std::hash<Key>,
@@ -236,7 +244,7 @@ public:
     iterator find(const Key& key) {
         auto index = find_index(key);
 
-        if (_table[index].used) {
+        if (index != _table.size()) {
             return iterator_from_index(index);
         } else {
             return end();
@@ -246,7 +254,7 @@ public:
     const_iterator find(const Key& key) const {
         auto index = find_index(key);
 
-        if (_table[index].used) {
+        if (index != _table.size()) {
             return iterator_from_index(index);
         } else {
             return end();
@@ -256,7 +264,7 @@ public:
     Value& at(const Key& key) {
         auto index = find_index(key);
 
-        if (_table[index].used) {
+        if (index != _table.size()) {
             return _table[index].kv.view.second;
         }
 
@@ -266,7 +274,7 @@ public:
     const Value& at(const Key& key) const {
         auto index = find_index(key);
 
-        if (_table[index].used) {
+        if (index != _table.size()) {
             return _table[index].kv.view.second;
         }
 
@@ -287,11 +295,11 @@ public:
     Value& operator[](const Key& key) {
         auto index = find_index(key);
 
-        if (_table[index].used) {
+        if (index != _table.size()) {
             return _table[index].kv.view.second;
         } else {
-            check_expand();
-            return activate_element(find_index(key), key);
+            auto res = insert_element(key, Value());
+            return res.first->second;
         }
     }
 
@@ -328,9 +336,8 @@ public:
 
             for (auto&& e : _table) {
                 if (e.used) {
-                    auto new_index =
-                        find_index_impl(e.kv.view.first, new_table);
-                    new_table[new_index] = std::move_if_noexcept(e);
+                    insert_index_impl(std::move_if_noexcept(e.kv.view.first),
+                                        std::move_if_noexcept(e.kv.view.second), new_table);
                 }
             }
 
@@ -361,12 +368,13 @@ private:
     std::pair<iterator, bool> insert_entry(Args&&... args) {
         check_expand();
         auto new_entry = make_entry(std::forward<Args>(args)...);
-        auto index = find_index(new_entry.kv.view.first);
+        auto res = insert_index(std::move(new_entry.kv.view.first),
+                                std::move(new_entry.kv.view.second));
+        auto index = res.index;
 
-        if (_table[index].used) {
+        if (res.key_existed) {
             return { iterator_from_index(index), false };
         } else {
-            _table[index] = std::move(new_entry);
             ++_element_count;
             return { iterator_from_index(index), true };
         }
@@ -376,13 +384,13 @@ private:
     template <typename KeyParam, typename Mapped>
     std::pair<iterator, bool> insert_element(KeyParam&& key, Mapped&& mapped) {
         check_expand();
-        auto index = find_index(key);
+        auto res = insert_index(std::forward<KeyParam>(key),
+                                std::forward<Mapped>(mapped));
+        auto index = res.index;
 
-        if (_table[index].used) {
+        if (res.key_existed) {
             return { iterator_from_index(index), false };
         } else {
-            _table[index] = make_entry(std::forward<KeyParam>(key),
-                                       std::forward<Mapped>(mapped));
             ++_element_count;
             return { iterator_from_index(index), true };
         }
@@ -393,32 +401,23 @@ private:
     std::pair<iterator, bool> insert_assign_element(KeyParam&& key,
                                                     Mapped&& mapped) {
         check_expand();
-        auto index = find_index(key);
+        auto res = insert_index(std::forward<KeyParam>(key),
+                                std::forward<Mapped>(mapped));
+        auto index = res.index;
 
-        if (_table[index].used) {
-            _table[index].kv.view.second = std::forward<Mapped>(mapped);
+        if (res.key_existed) {
+            _table[index].kv.view.second = std::move(mapped);
             return { iterator_from_index(index), false };
         } else {
-            _table[index] = make_entry(std::forward<KeyParam>(key),
-                                       std::forward<Mapped>(mapped));
             ++_element_count;
             return { iterator_from_index(index), true };
         }
     }
 
-    // marks element at given index as in the map
-    Value& activate_element(size_type index, const Key& key) {
-        _table[index].used = true;
-        _table[index].kv.view.first = key;
-        ++_element_count;
-
-        return _table[index].kv.view.second;
-    }
-
     std::pair<size_type, iterator> erase_impl(const Key& key) {
         auto index = find_index(key);
 
-        if (!_table[index].used) {
+        if (index == _table.size()) {
             return { 0, {} };
         }
 
@@ -456,18 +455,114 @@ private:
         return find_index_impl(key, _table);
     }
 
+    // returns table.size() if element is not found
     size_type find_index_impl(const Key& key, const table_type& table) const {
-        auto index = hash_index_impl(key, table);
+        const auto key_hash = _hasher(key);
+        auto index = map_position_impl(key_hash, table);
+        auto distance = 0u;
 
-        while (table[index].used) {
-            if (_key_equal(table[index].kv.view.first, key)) {
+        while (true) {
+            if (!table[index].used) {
+                return table.size();
+            } else if (distance >
+                       probe_distance(table[index].hash, index)) {
+                return table.size();
+            } else if (table[index].hash == key_hash &&
+                       table[index].kv.const_view.first == key) {
                 return index;
             }
 
             index = next_index_impl(index, table);
+            ++distance;
         }
+    }
 
-        return index;
+    template <typename KeyParam, typename Mapped>
+    detail::insert_result insert_index(KeyParam&& key, Mapped&& mapped) {
+        return insert_index_impl(std::forward<KeyParam>(key),
+                                 std::forward<Mapped>(mapped), _table);
+    }
+
+    template <typename KeyParam, typename Mapped>
+    detail::insert_result insert_index_impl(KeyParam&& key,
+                                                 Mapped&& mapped,
+                                                 table_type& table) const {
+        auto key_hash = _hasher(key);
+        auto index = map_position_impl(key_hash, table);
+        size_type distance = 0u;
+
+        while (true) {
+            if (!table[index].used) {
+                table[index] = make_entry(std::forward<KeyParam>(key),
+                                           std::forward<Mapped>(mapped));
+                table[index].hash = key_hash;
+
+                return { index, false };
+            }
+
+            if (table[index].hash == key_hash &&
+                table[index].kv.view.first == key) {
+                return { index, true };
+            }
+
+            auto current_element_distance =
+                probe_distance_impl(table[index].hash, index, table);
+            if (current_element_distance < distance) {
+                Key k = std::move(key);
+                Value v = std::move(mapped);
+                using std::swap;
+                swap(table[index].kv.view.first, k);
+                swap(table[index].kv.view.second, v);
+                swap(table[index].hash, key_hash);
+
+                insert_index_impl_tail(k, v, current_element_distance, key_hash,
+                                       index, table);
+                return { index, false };
+            }
+
+            index = next_index_impl(index, table);
+            ++distance;
+        }
+    }
+
+    template <typename KeyParam, typename Mapped>
+    void insert_index_impl_tail(KeyParam& key, Mapped& mapped,
+                                size_type distance, size_type key_hash,
+                                size_type index, table_type& table) const {
+
+        index = next_index_impl(index, table);
+        ++distance;
+
+        while (true) {
+            if (!table[index].used) {
+                table[index] = make_entry(std::forward<KeyParam>(key),
+                                          std::forward<Mapped>(mapped));
+                table[index].hash = key_hash;
+                return;
+            }
+
+            auto current_element_distance =
+                probe_distance_impl(table[index].hash, index, table);
+            if (current_element_distance < distance) {
+                using std::swap;
+                swap(table[index].kv.view.first, key);
+                swap(table[index].kv.view.second, mapped);
+                swap(table[index].hash, key_hash);
+                distance = current_element_distance;
+            }
+
+            index = next_index_impl(index, table);
+            ++distance;
+        }
+    }
+
+    size_type probe_distance(size_type hash, size_type index) const {
+        return probe_distance_impl(hash, index, _table);
+    }
+
+    size_type probe_distance_impl(size_type hash, size_type index, const table_type& table) const {
+        auto root_index = map_position_impl(hash, table);
+        return map_position_impl(index + table.size() - root_index, table);
     }
 
     size_type hash_index(const Key& key) const {
@@ -475,7 +570,15 @@ private:
     }
 
     size_type hash_index_impl(const Key& key, const table_type& table) const {
-        return _hasher(key) & (table.size() - 1);
+        return map_position_impl(_hasher(key), table);
+    }
+
+    size_type map_position(size_type hash) const {
+        return map_position_impl(hash, _table);
+    }
+
+    size_type map_position_impl(size_type hash, const table_type& table) const {
+        return hash & (table.size() - 1);
     }
 
     constexpr size_type next_index(size_type index) const {
@@ -489,12 +592,13 @@ private:
 
     template <typename... Args>
     entry_type make_entry(Args&&... args) const {
-        return { detail::key_value<Key, Value>(std::forward<Args>(args)...),
-                 true };
+        return {
+            detail::key_value<Key, Value>(std::forward<Args>(args)...), 0, true};
     }
 
     entry_type empty_slot_factory() const {
-        return { detail::key_value<Key, Value>(Key(), Value()), false };
+        return {
+            detail::key_value<Key, Value>(Key(), Value()), 0, false};
     }
 
     iterator iterator_from_index(size_type index) {
