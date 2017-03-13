@@ -11,12 +11,15 @@ template <typename Key, typename Value>
 struct dict_entry {
     detail::key_value<Key, Value> kv;
     std::size_t hash;
-    bool used;
 
-    dict_entry() : kv(), hash(0), used(false) {}
+    dict_entry() : kv(), hash(0) {}
     template<typename KV>
-    dict_entry(KV&& kv, std::size_t hash, bool used)
-        : kv(std::forward<KV>(kv)), hash(hash), used(used) {}
+    dict_entry(KV&& kv, std::size_t hash)
+        : kv(std::forward<KV>(kv)), hash(hash) {}
+
+    bool entry_is_free() const {
+        return hash == 0;
+    }
 };
 
 } // namespace detail

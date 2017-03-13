@@ -21,7 +21,7 @@ class dict_iterator_base
 public:
     dict_iterator_base() : _ptr(), _end() {}
     dict_iterator_base(Iter p, Iter end) : _ptr(p), _end(end) {
-        if (_ptr != _end && !_ptr->used) {
+        if (_ptr != _end && _ptr->entry_is_free()) {
             increment();
         }
     }
@@ -40,7 +40,7 @@ private:
     void increment() {
         do {
             ++_ptr;
-        } while (_ptr != _end && !_ptr->used);
+        } while (_ptr != _end && _ptr->entry_is_free());
     }
 
     template <typename OtherValue, typename OtherIter>
