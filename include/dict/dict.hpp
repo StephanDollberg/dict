@@ -335,7 +335,7 @@ public:
             new_table.resize(next_size(new_size, max_load_factor()));
 
             for (auto&& e : _table) {
-                if (e.used) {
+                if (!e.entry_is_free()) {
                     insert_index_impl(std::move_if_noexcept(e.kv.view.first),
                                         std::move_if_noexcept(e.kv.view.second), new_table);
                 }
@@ -430,7 +430,7 @@ private:
         while (true) {
             delete_index = next_index(delete_index);
 
-            if (!_table[delete_index].used) {
+            if (_table[delete_index].entry_is_free()) {
                 return { 1,
                          { std::next(_table.begin(), deleted_index),
                            _table.end() } };
@@ -457,12 +457,12 @@ private:
 
     // returns table.size() if element is not found
     size_type find_index_impl(const Key& key, const table_type& table) const {
-        const auto key_hash = _hasher(key);
+        const auto key_hash = safe_hash(key);
         auto index = map_position_impl(key_hash, table);
         auto distance = 0u;
 
         while (true) {
-            if (!table[index].used) {
+            if (table[index].entry_is_free()) {
                 return table.size();
             } else if (distance >
                        probe_distance(table[index].hash, index)) {
@@ -487,12 +487,12 @@ private:
     detail::insert_result insert_index_impl(KeyParam&& key,
                                                  Mapped&& mapped,
                                                  table_type& table) const {
-        auto key_hash = _hasher(key);
+        auto key_hash = safe_hash(key);
         auto index = map_position_impl(key_hash, table);
         size_type distance = 0u;
 
         while (true) {
-            if (!table[index].used) {
+            if (table[index].entry_is_free()) {
                 table[index] = make_entry(std::forward<KeyParam>(key),
                                            std::forward<Mapped>(mapped));
                 table[index].hash = key_hash;
@@ -534,7 +534,7 @@ private:
         ++distance;
 
         while (true) {
-            if (!table[index].used) {
+            if (table[index].entry_is_free()) {
                 table[index] = make_entry(std::forward<KeyParam>(key),
                                           std::forward<Mapped>(mapped));
                 table[index].hash = key_hash;
@@ -570,7 +570,7 @@ private:
     }
 
     size_type hash_index_impl(const Key& key, const table_type& table) const {
-        return map_position_impl(_hasher(key), table);
+        return map_position_impl(safe_hash(key), table);
     }
 
     size_type map_position(size_type hash) const {
@@ -593,12 +593,12 @@ private:
     template <typename... Args>
     entry_type make_entry(Args&&... args) const {
         return {
-            detail::key_value<Key, Value>(std::forward<Args>(args)...), 0, true};
+            detail::key_value<Key, Value>(std::forward<Args>(args)...), 0};
     }
 
     entry_type empty_slot_factory() const {
         return {
-            detail::key_value<Key, Value>(Key(), Value()), 0, false};
+            detail::key_value<Key, Value>(Key(), Value()), 0};
     }
 
     iterator iterator_from_index(size_type index) {
@@ -617,6 +617,14 @@ private:
     }
 
     constexpr float initial_load_factor() const { return 0.7; }
+
+    // inspired by Rust HashMap
+    // we set MSB to one as 0 is special value to indicate empty element
+    constexpr size_type safe_hash(const Key& key) const {
+        auto hash = _hasher(key);
+        auto hash_bits = sizeof(size_type) * 8;
+        return (std::size_t(1) << (hash_bits - 1)) | hash;
+    }
 
     table_type _table;
     size_type _element_count;
