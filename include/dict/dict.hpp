@@ -41,7 +41,7 @@ public:
     typedef detail::dict_iterator<Key, Value> iterator;
     typedef detail::const_dict_iterator<Key, Value> const_iterator;
 
-    dict() : dict(initial_size()) {}
+    dict() : _element_count(0), _max_element_count(0) {}
 
     explicit dict(size_type initial_size, const Hasher& hash = Hasher(),
                   const KeyEqual& key_equal = KeyEqual(),
@@ -323,7 +323,7 @@ public:
     void reserve(std::size_t new_size) {
         if (new_size > _table.size()) {
             table_type new_table(_table.get_allocator());
-            new_table.resize(next_size(new_size, max_load_factor()));
+            new_table.resize(new_size);
 
             for (auto&& e : _table) {
                 if (e.used) {
@@ -338,7 +338,7 @@ public:
         }
     }
 
-    void rehash() { reserve(2 * _table.size()); }
+    void rehash() { reserve(next_size(2 * _table.size(), max_load_factor())); }
 
     bool next_is_rehash() const { return size() >= _max_element_count; }
 
@@ -454,6 +454,10 @@ private:
     }
 
     size_type find_index_impl(const Key& key, const table_type& table) const {
+        if (_element_count == 0) {
+            return table.size();
+        }
+
         auto index = hash_index_impl(key, table);
 
         while (table[index].used) {

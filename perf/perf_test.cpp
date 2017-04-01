@@ -10,7 +10,7 @@
 
 #include <benchmark/benchmark.h>
 
-#define BENCH_SIZES ->Arg(8)->Arg(8 << 10)->Arg(8 << 14)->Arg(8 << 20)
+#define BENCH_SIZES ->Arg(8)->Arg(8 << 10)->Arg(8 << 14)->Arg(8 << 20)->Arg(8 << 24)
 #define COLLISION_BENCH_SIZES ->Arg(8)->Arg(8 << 5)->Arg(8 << 10)
 
 struct inc_gen {
