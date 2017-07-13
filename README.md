@@ -45,3 +45,7 @@ Tested on:
 - Windows 8.1 with STL's mingw(4.9.1) + boost(1.56) pack(12.1)
 
 Contributions and feedback highly appreciated.
+
+### Updates
+
+There is also a branch ([robinhood-ng](https://github.com/StephanDollberg/dict/commits/robinhood-ng)) which implements the robinhood hashing scheme similar to the one in Rust's ` std::collections::HashMap`.
