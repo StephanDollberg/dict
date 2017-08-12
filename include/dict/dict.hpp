@@ -53,6 +53,7 @@ public:
         // explicit vector( size_type count, const Allocator& alloc =
         // Allocator() );
         _table.resize(next_size(initial_size, initial_load_factor()));
+        _max_element_count = initial_load_factor() * _table.size();
     }
 
     explicit dict(const Allocator& alloc)
@@ -338,7 +339,9 @@ public:
         }
     }
 
-    void rehash() { reserve(2 * _table.size()); }
+    // new size doesn't really matter here as we enforce power of two in reserve
+    // so we simply add one to get the next block
+    void rehash() { reserve(_table.size() + 1); }
 
     bool next_is_rehash() const { return size() >= _max_element_count; }
 

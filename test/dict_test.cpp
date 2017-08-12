@@ -316,6 +316,18 @@ TEST_CASE("dict rehash", "[dict][rehash]") {
         int sum = 0; for(auto&& e: d) { sum += e.second; }
         CHECK(sum == i * (i + 1) / 2);
     }
+
+    SECTION("max load factor still correct after rehash") {
+        io::dict<int, int, big_hash> d;
+
+        CHECK(d.max_load_factor() == 0.6875);
+
+        for (auto i = 0; i < 1000; ++i) {
+            d[i] = i;
+        }
+
+        CHECK(d.max_load_factor() == 0.6875);
+    }
 }
 
 struct only_moveable {
