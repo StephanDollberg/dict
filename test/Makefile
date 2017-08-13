@@ -33,7 +33,7 @@ endif
 SOURCES = $(wildcard *.cpp)
 OBJS = $(addprefix ./, $(notdir $(SOURCES:.cpp=.o)))
 
-%.o: %.cpp
+%.o: %.cpp ../include/dict/dict.hpp
 	$(CXX) $(standard_library) $(ARGS) $(CXXFLAGS) $(ADD_INC_FLAGS) -c $< -o $@
 
 test_main: $(OBJS)
