@@ -49,13 +49,18 @@ public:
     typedef detail::dict_iterator<Key, Value> iterator;
     typedef detail::const_dict_iterator<Key, Value> const_iterator;
 
-    dict() : dict(initial_size()) {}
+    dict() noexcept(
+            std::is_nothrow_default_constructible<hasher>::value &&
+            std::is_nothrow_default_constructible<key_equal>::value &&
+            std::is_nothrow_default_constructible<allocator_type>::value)
+        : _element_count(0), _max_element_count(0), _load_factor(initial_load_factor()) {}
 
     explicit dict(size_type initial_size, const Hasher& hash = Hasher(),
                   const KeyEqual& key_equal = KeyEqual(),
                   const Allocator& alloc = Allocator())
         : _table(_internal_allocator(alloc)), _element_count(0),
-          _max_element_count(initial_size), _hasher(hash),
+          _max_element_count(initial_size),
+          _load_factor(initial_load_factor()), _hasher(hash),
           _key_equal(key_equal) {
         // we need to do this manually because only as of C++14 there is
         // explicit vector( size_type count, const Allocator& alloc =
@@ -236,6 +241,7 @@ public:
         using std::swap;
         swap(_table, other._table);
         swap(_element_count, other._element_count);
+        swap(_load_factor, other._load_factor);
         swap(_max_element_count, other._max_element_count);
         swap(_key_equal, other._key_equal);
         swap(_hasher, other._hasher);
@@ -313,11 +319,16 @@ public:
     float load_factor() const { return _element_count / float(_table.size()); }
 
     float max_load_factor() const {
-        return _max_element_count / float(_table.size());
+        return _load_factor;
     }
 
     void max_load_factor(float new_max_load_factor) {
+        _load_factor = new_max_load_factor;
         _max_element_count = std::ceil(new_max_load_factor * _table.size());
+
+        if (_element_count == 0) {
+            return;
+        }
 
         // a load factor of 1 would make index finding never stop
         if (_max_element_count == _table.size()) {
@@ -457,6 +468,10 @@ private:
 
     // returns table.size() if element is not found
     size_type find_index_impl(const Key& key, const table_type& table) const {
+        if (_element_count == 0) {
+            return table.size();
+        }
+
         const auto key_hash = safe_hash(key);
         auto index = map_position_impl(key_hash, table);
         auto distance = 0u;
@@ -609,10 +624,14 @@ private:
         return { std::next(_table.begin(), index), _table.end(), true };
     }
 
-    size_type initial_size() const { return detail::next_power_of_two(8); }
+    constexpr size_type initial_size() const { return 16; }
 
-    constexpr size_type next_size(size_type min_size,
+    size_type next_size(size_type min_size,
                                   double load_factor) const {
+        if (min_size <= initial_size()) {
+            return initial_size();
+        }
+
         return detail::next_power_of_two(std::ceil(min_size / load_factor));
     }
 
@@ -629,6 +648,7 @@ private:
     table_type _table;
     size_type _element_count;
     size_type _max_element_count;
+    float _load_factor;
     hasher _hasher;
     key_equal _key_equal;
 };

@@ -326,13 +326,13 @@ TEST_CASE("dict rehash", "[dict][rehash]") {
     SECTION("max load factor still correct after rehash") {
         io::dict<int, int, big_hash> d;
 
-        CHECK(d.max_load_factor() == 0.6875);
+        CHECK(d.max_load_factor() == float(0.7));
 
         for (auto i = 0; i < 1000; ++i) {
             d[i] = i;
         }
 
-        CHECK(d.max_load_factor() == 0.6875);
+        CHECK(d.max_load_factor() == float(0.7));
     }
 }
 
@@ -878,9 +878,8 @@ TEST_CASE("nothrow move constructalbe", "[dict][construct]") {
     // default ctors
     static_assert(std::is_default_constructible<io::dict<int, std::string>>::value,
         "dict should be default constructible");
-    // Need to make dict() not allocate for that
-    // static_assert(std::is_nothrow_default_constructible<io::dict<int, std::string>>::value,
-    //     "dict should be noexcept default constructible");
+    static_assert(std::is_nothrow_default_constructible<io::dict<int, std::string>>::value,
+        "dict should be noexcept default constructible");
 
     // copy ctors
     static_assert(std::is_copy_constructible<io::dict<int, std::string>>::value,
