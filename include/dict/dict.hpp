@@ -50,20 +50,18 @@ public:
     typedef detail::dict_iterator<Key, Value> iterator;
     typedef detail::const_dict_iterator<Key, Value> const_iterator;
 
-    dict() : _element_count(0), _max_element_count(0), _load_factor(initial_load_factor()) {}
+    dict() : _element_count(0), _load_factor(initial_load_factor()) {}
 
     explicit dict(size_type initial_size, const Hasher& hash = Hasher(),
                   const KeyEqual& key_equal = KeyEqual(),
                   const Allocator& alloc = Allocator())
         : _table(_internal_allocator(alloc)), _element_count(0),
-          _max_element_count(initial_size),
           _load_factor(initial_load_factor()), _hasher(hash),
           _key_equal(key_equal) {
         // we need to do this manually because only as of C++14 there is
         // explicit vector( size_type count, const Allocator& alloc =
         // Allocator() );
         _table.resize(next_size(initial_size, initial_load_factor()));
-        _max_element_count = initial_load_factor() * _table.size();
     }
 
     explicit dict(const Allocator& alloc)
@@ -239,7 +237,6 @@ public:
         swap(_table, other._table);
         swap(_element_count, other._element_count);
         swap(_load_factor, other._load_factor);
-        swap(_max_element_count, other._max_element_count);
         swap(_key_equal, other._key_equal);
         swap(_hasher, other._hasher);
     }
@@ -316,22 +313,14 @@ public:
     float load_factor() const { return _element_count / float(_table.size()); }
 
     float max_load_factor() const {
-        // return _max_element_count / float(_table.size());
         return _load_factor;
     }
 
     void max_load_factor(float new_max_load_factor) {
         _load_factor = new_max_load_factor;
 
-        _max_element_count = std::ceil(new_max_load_factor * _table.size());
-
         if (_element_count == 0) {
             return;
-        }
-
-        // a load factor of 1 would make index finding never stop
-        if (_max_element_count == _table.size()) {
-            _max_element_count -= 1;
         }
 
         if (next_is_rehash()) {
@@ -351,7 +340,6 @@ public:
                 }
             }
 
-            _max_element_count = max_load_factor() * new_table.size();
             _table.swap(new_table);
         }
     }
@@ -360,7 +348,19 @@ public:
     // so we simply add one to get the next block
     void rehash() { reserve(_table.size() + 1); }
 
-    bool next_is_rehash() const { return size() >= _max_element_count; }
+    bool next_is_rehash() const {
+        if (_element_count == 0) {
+            return true;
+        }
+
+        auto current_load = _element_count / float((_table.size() - 1));
+
+        if (current_load >= max_load_factor()) {
+            return true;
+        }
+
+        return false;
+    }
 
     hasher hash_function() const { return _hasher; }
 
@@ -646,7 +646,6 @@ private:
 
     table_type _table;
     size_type _element_count;
-    size_type _max_element_count;
     float _load_factor;
     hasher _hasher;
     key_equal _key_equal;
