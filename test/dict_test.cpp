@@ -767,3 +767,13 @@ TEST_CASE("proper iterator after insert", "[dict][insert]") {
     CHECK(res.first->second == 24);
     CHECK(res.second == true);
 }
+
+#ifdef __cpp_deduction_guides
+TEST_CASE("C++17 deduction guides", "[dict][C++17]") {
+    io::dict<int, int> d_with_types{{1,2}, {3,4}};
+    io::dict d_without_types(d_with_types.begin(), d_with_types.end());
+
+    CHECK(d_without_types[1] == 2);
+    CHECK(d_without_types[3] == 4);
+}
+#endif

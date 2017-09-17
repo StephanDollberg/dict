@@ -521,6 +521,11 @@ private:
     key_equal _key_equal;
 };
 
+
+#ifdef __cpp_deduction_guides
+#include "detail/deduction_guides.hpp"
+#endif
+
 template <typename Key, typename Value, typename Hasher, typename KeyEqual,
           typename Allocator>
 void swap(dict<Key, Value, Hasher, KeyEqual, Allocator>& A,

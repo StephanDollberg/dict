@@ -45,6 +45,9 @@ with_sanitizers: test_main
 build14: STANDARD = -std=c++1y
 build14: test_main
 
+build17: STANDARD = -std=c++17
+build17: test_main
+
 test:
 	./test_main
 
