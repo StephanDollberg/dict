@@ -18,4 +18,7 @@ install:
   - if [ "$CXX" = "g++" ]; then export CXX="g++-7"; fi
 
 script:
-  - cd test && make && make test
+  - cd test
+  - make clean ; make && make test
+  - make clean ; make with_sanitizers && make test
+  - make clean ; make build17 && make test
