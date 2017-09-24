@@ -777,3 +777,41 @@ TEST_CASE("C++17 deduction guides", "[dict][C++17]") {
     CHECK(d_without_types[3] == 4);
 }
 #endif
+
+TEST_CASE("nothrow move constructalbe", "[dict][construct]") {
+    // default ctors
+    static_assert(std::is_default_constructible<io::dict<int, std::string>>::value,
+        "dict should be default constructible");
+    // Need to make dict() not allocate for that
+    // static_assert(std::is_nothrow_default_constructible<io::dict<int, std::string>>::value,
+    //     "dict should be noexcept default constructible");
+
+    // copy ctors
+    static_assert(std::is_copy_constructible<io::dict<int, std::string>>::value,
+        "dict should be copy constructible");
+
+    // move ctors
+    static_assert(std::is_move_constructible<io::dict<int, std::string>>::value,
+        "dict should be move constructible");
+    static_assert(std::is_nothrow_move_constructible<io::dict<int, std::string>>::value,
+        "dict should be noexcept move constructible");
+
+    // copy assignment
+    static_assert(std::is_copy_assignable<io::dict<int, std::string>>::value,
+        "dict should be copy assignable");
+
+    // move assignment
+    static_assert(std::is_move_assignable<io::dict<int, std::string>>::value,
+        "dict should be move assignable");
+    static_assert(std::is_nothrow_move_assignable<io::dict<int, std::string>>::value,
+        "dict should be noexcept move assignable");
+
+#ifdef __cpp_lib_is_swappable
+    // swapability
+    static_assert(std::is_swappable<io::dict<int, std::string>>::value,
+        "dict should be swappable");
+    // need to figure this out
+    // static_assert(std::is_nothrow_swappable<io::dict<int, std::string>>::value,
+    //     "dict should be noexcept swappable");
+#endif
+}
