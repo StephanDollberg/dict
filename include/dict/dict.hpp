@@ -1,15 +1,15 @@
 #ifndef DICT_HPP
 #define DICT_HPP
 
-#include <vector>
+#include <functional>
 #include <stdexcept>
 #include <tuple>
-#include <functional>
+#include <vector>
 
-#include "detail/prime.hpp"
-#include "detail/key_value.hpp"
-#include "detail/iterator.hpp"
 #include "detail/entry.hpp"
+#include "detail/iterator.hpp"
+#include "detail/key_value.hpp"
+#include "detail/prime.hpp"
 
 namespace io {
 
@@ -30,7 +30,8 @@ public:
 private:
     typedef detail::dict_entry<Key, Value> entry_type;
     typedef typename std::allocator_traits<Allocator>::template rebind_alloc<
-        entry_type> _internal_allocator;
+        entry_type>
+        _internal_allocator;
     typedef std::vector<entry_type, _internal_allocator> table_type;
 
 public:
@@ -520,7 +521,6 @@ private:
     hasher _hasher;
     key_equal _key_equal;
 };
-
 
 #ifdef __cpp_deduction_guides
 #include "detail/deduction_guides.hpp"
