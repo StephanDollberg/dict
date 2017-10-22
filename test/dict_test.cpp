@@ -815,3 +815,14 @@ TEST_CASE("nothrow move constructalbe", "[dict][construct]") {
     //     "dict should be noexcept swappable");
 #endif
 }
+
+#if __has_include(<experimental/memory_resource>) && __cplusplus >= 201402L
+TEST_CASE("pmr support", "[dict][pmr]") {
+    auto allocator = std::experimental::pmr::new_delete_resource();
+    io::pmr::dict<int, int> pmr_dict(allocator);
+
+    pmr_dict[1] = 2;
+
+    CHECK(pmr_dict[1] == 2);
+}
+#endif
