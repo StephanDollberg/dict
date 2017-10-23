@@ -5,9 +5,6 @@
 #include <stdexcept>
 #include <tuple>
 #include <vector>
-#if __has_include(<experimental/memory_resource>) && __cplusplus >= 201402L
-#include <experimental/memory_resource>
-#endif
 
 #include "detail/entry.hpp"
 #include "detail/iterator.hpp"
@@ -561,19 +558,6 @@ bool operator!=(dict<Key, Value, Hasher, KeyEqual, Allocator>& A,
                 dict<Key, Value, Hasher, KeyEqual, Allocator>& B) {
     return !(A == B);
 }
-
-#if __has_include(<experimental/memory_resource>) && __cplusplus >= 201402L
-
-namespace pmr {
-template <typename Key, typename Value, typename Hasher = std::hash<Key>,
-          typename KeyEqual = std::equal_to<Key>>
-using dict = dict<
-    Key, Value, Hasher, KeyEqual,
-    std::experimental::pmr::polymorphic_allocator<std::pair<const Key, Value>>>;
-} // namespace pmr
-
-#endif
-
 
 } // namespace io
 
