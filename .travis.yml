@@ -15,10 +15,9 @@ before_install:
 
 install:
   - if [ "$CXX" = "g++" ]; then sudo apt install g++-7 binutils; fi
-  - if [ "$CXX" = "g++" ]; then export CXX="g++-7"; fi
 
 script:
   - cd test
-  - make clean ; make && make test
-  - make clean ; make with_sanitizers && make test
-  - make clean ; make build17 && make test
+  - make clean ; CXX=g++ make && make test
+  - make clean ; CXX=g++-7 make with_sanitizers && make test
+  - make clean ; CXX=g++-7 make build17 && make test
