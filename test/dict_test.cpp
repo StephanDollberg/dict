@@ -2,6 +2,7 @@
 
 #include "../include/dict/dict.hpp"
 
+#include <unordered_map>
 #include <vector>
 #include <string>
 #include <future>
@@ -766,6 +767,51 @@ TEST_CASE("proper iterator after insert", "[dict][insert]") {
     CHECK(res.first->first == 24);
     CHECK(res.first->second == 24);
     CHECK(res.second == true);
+}
+
+TEST_CASE("hash mixer", "[dict]") {
+    {
+        std::hash<int> my_hasher;
+        std::unordered_map<int, int, io::murmur_hash_mixer<std::hash<int>>> d(10, my_hasher);
+
+        d[1] = 1;
+        CHECK(d[1] == 1);
+    }
+
+    {
+        io::murmur_hash_mixer<std::hash<int>> my_wrapped_hasher;
+        std::unordered_map<int, int, io::murmur_hash_mixer<std::hash<int>>> d(10, my_wrapped_hasher);
+
+        d[1] = 1;
+        CHECK(d[1] == 1);
+    }
+
+    {
+        io::dict<int, int, io::murmur_hash_mixer<std::hash<int>>> d_with_mixer;
+        io::dict<int, int> d_without_mixer;
+
+        d_with_mixer[0] = 0;
+        d_with_mixer[1] = 1;
+        d_with_mixer[2] = 2;
+        CHECK(d_with_mixer[1] == 1);
+
+        d_without_mixer[0] = 0;
+        d_without_mixer[1] = 1;
+        d_without_mixer[2] = 2;
+        CHECK(d_without_mixer[1] == 1);
+
+        std::vector<int> ordered{ 0, 1, 2 };
+
+        CHECK(std::equal(ordered.begin(), ordered.end(),
+                         d_without_mixer.begin(),
+                         [](int lhs, std::pair<int, int> rhs) -> bool {
+                             return lhs == rhs.first;
+                         }));
+        CHECK(!std::equal(ordered.begin(), ordered.end(), d_with_mixer.begin(),
+                          [](int lhs, std::pair<int, int> rhs) -> bool {
+                              return lhs == rhs.first;
+                          }));
+    }
 }
 
 #ifdef __cpp_deduction_guides
