@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <tuple>
 #include <vector>
-#if __has_include(<experimental/memory_resource>) && __cplusplus >= 201402L
+#if __cpp_lib_memory_resource
 #include <experimental/memory_resource>
 #endif
 
@@ -562,7 +562,7 @@ bool operator!=(dict<Key, Value, Hasher, KeyEqual, Allocator>& A,
     return !(A == B);
 }
 
-#if __has_include(<experimental/memory_resource>) && __cplusplus >= 201402L
+#if __cpp_lib_memory_resource
 
 namespace pmr {
 template <typename Key, typename Value, typename Hasher = std::hash<Key>,

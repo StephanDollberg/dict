@@ -816,7 +816,7 @@ TEST_CASE("nothrow move constructalbe", "[dict][construct]") {
 #endif
 }
 
-#if __has_include(<experimental/memory_resource>) && __cplusplus >= 201402L
+#if __cpp_lib_memory_resource
 TEST_CASE("pmr support", "[dict][pmr]") {
     auto allocator = std::experimental::pmr::new_delete_resource();
     io::pmr::dict<int, int> pmr_dict(allocator);
