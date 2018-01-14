@@ -22,13 +22,24 @@ struct inc_gen {
 struct collision_hasher {
     std::size_t operator()(int) const { return 1; }
 };
-// Note that we keep benching on the same instance of the d
-// Alternative with creating a per run instance would make us always test on
-// cold data
-template <typename Map, typename Generator>
-void insert_test(Map& map, Generator& gen, int insert_num) {
-    for (int i = 0; i != insert_num; ++i) {
-        map[gen()] = i;
+
+template <typename Map, typename Container>
+void insert_test_impl(Map& map, Container& insert_vals) {
+    int i = 0;
+    for (auto&& insert_val: insert_vals) {
+        map[insert_val] = i++;
+    }
+}
+
+template <typename State, typename Map, typename Generator>
+void insert_test(State& state, Map& map, Generator& gen) {
+    while (state.KeepRunning()) {
+        state.PauseTiming();
+        auto temporary_map = map;
+        std::array<std::size_t, 100> insert_vals;
+        std::generate(insert_vals.begin(), insert_vals.end(), gen);
+        state.ResumeTiming();
+        insert_test_impl(temporary_map, insert_vals);
     }
 }
 
@@ -41,12 +52,7 @@ static void dict_insert(benchmark::State& state) {
     std::mt19937 engine;
     auto gen = std::bind(std::ref(normal), std::ref(engine));
 
-    while (state.KeepRunning()) {
-        state.PauseTiming();
-        auto temporary_d = d;
-        state.ResumeTiming();
-        insert_test(temporary_d, gen, test_size);
-    }
+    insert_test(state, d, gen);
 }
 BENCHMARK(dict_insert)
 BENCH_SIZES;
@@ -60,12 +66,7 @@ static void umap_insert(benchmark::State& state) {
     std::mt19937 engine;
     auto gen = std::bind(std::ref(normal), std::ref(engine));
 
-    while (state.KeepRunning()) {
-        state.PauseTiming();
-        auto temporary_d = d;
-        state.ResumeTiming();
-        insert_test(temporary_d, gen, test_size);
-    }
+    insert_test(state, d, gen);
 }
 BENCHMARK(umap_insert)
 BENCH_SIZES;
@@ -80,12 +81,7 @@ static void goog_insert(benchmark::State& state) {
     std::mt19937 engine;
     auto gen = std::bind(std::ref(normal), std::ref(engine));
 
-    while (state.KeepRunning()) {
-        state.PauseTiming();
-        auto temporary_d = d;
-        state.ResumeTiming();
-        insert_test(temporary_d, gen, test_size);
-    }
+    insert_test(state, d, gen);
 }
 BENCHMARK(goog_insert)
 BENCH_SIZES;
@@ -139,19 +135,28 @@ Map build_map_with_reserve(int size) {
     return d;
 }
 
-template <typename Map, typename Generator>
-int hybrid_test(Map& map, Generator& gen) {
+template <typename Map, typename Container>
+int hybrid_test_impl(Map& map, Container& test_vals) {
     int res = 0;
-    for (std::size_t i = 0; i < 100; i += 1) {
-        res += map[gen()];
+    for (auto&& test_val: test_vals) {
+        res += map[test_val];
     }
 
     return res;
 }
 
-// Note that we keep benching on the same instance of the d
-// Alternative with creating a per run instance would make us always test on
-// cold data
+template <typename State, typename Map, typename Generator>
+void hybrid_test(State& state, Map& map, Generator& gen) {
+    while (state.KeepRunning()) {
+        state.PauseTiming();
+        auto temporary_map = map;
+        std::array<std::size_t, 100> test_vals;
+        std::generate(test_vals.begin(), test_vals.end(), gen);
+        state.ResumeTiming();
+        benchmark::DoNotOptimize(hybrid_test_impl(temporary_map, test_vals));
+    }
+}
+
 static void dict_hybrid(benchmark::State& state) {
     const int test_size = state.range(0);
     std::uniform_int_distribution<std::size_t> normal(0, 2 * test_size - 1);
@@ -159,12 +164,7 @@ static void dict_hybrid(benchmark::State& state) {
     auto gen = std::bind(std::ref(normal), std::ref(engine));
     auto d = build_map<io::dict<int, int>>(test_size, gen);
 
-    while (state.KeepRunning()) {
-        state.PauseTiming();
-        auto temporary_d = d;
-        state.ResumeTiming();
-        benchmark::DoNotOptimize(hybrid_test(temporary_d, gen));
-    }
+    hybrid_test(state, d, gen);
 }
 BENCHMARK(dict_hybrid)
 BENCH_SIZES;
@@ -176,12 +176,7 @@ static void umap_hybrid(benchmark::State& state) {
     auto gen = std::bind(std::ref(normal), std::ref(engine));
     auto d = build_map<std::unordered_map<int, int>>(test_size, gen);
 
-    while (state.KeepRunning()) {
-        state.PauseTiming();
-        auto temporary_d = d;
-        state.ResumeTiming();
-        benchmark::DoNotOptimize(hybrid_test(temporary_d, gen));
-    }
+    hybrid_test(state, d, gen);
 }
 BENCHMARK(umap_hybrid)
 BENCH_SIZES;
@@ -194,12 +189,7 @@ static void goog_hybrid(benchmark::State& state) {
     auto gen = std::bind(std::ref(normal), std::ref(engine));
     auto d = build_map_google<google::dense_hash_map<int, int>>(test_size, gen);
 
-    while (state.KeepRunning()) {
-        state.PauseTiming();
-        auto temporary_d = d;
-        state.ResumeTiming();
-        benchmark::DoNotOptimize(hybrid_test(temporary_d, gen));
-    }
+    hybrid_test(state, d, gen);
 }
 BENCHMARK(goog_hybrid)
 BENCH_SIZES;
@@ -214,12 +204,7 @@ static void dict_hybrid_with_heavy_clustering(benchmark::State& state) {
     std::mt19937 engine;
     auto gen = std::bind(std::ref(normal), std::ref(engine));
 
-    while (state.KeepRunning()) {
-        state.PauseTiming();
-        auto temporary_d = d;
-        state.ResumeTiming();
-        benchmark::DoNotOptimize(hybrid_test(temporary_d, gen));
-    }
+    hybrid_test(state, d, gen);
 }
 BENCHMARK(dict_hybrid_with_heavy_clustering)
 BENCH_SIZES;
@@ -232,12 +217,7 @@ static void umap_hybrid_with_heavy_clustering(benchmark::State& state) {
     std::mt19937 engine;
     auto gen = std::bind(std::ref(normal), std::ref(engine));
 
-    while (state.KeepRunning()) {
-        state.PauseTiming();
-        auto temporary_d = d;
-        state.ResumeTiming();
-        benchmark::DoNotOptimize(hybrid_test(temporary_d, gen));
-    }
+    hybrid_test(state, d, gen);
 }
 BENCHMARK(umap_hybrid_with_heavy_clustering)
 BENCH_SIZES;
@@ -252,12 +232,7 @@ static void goog_hybrid_with_heavy_clustering(benchmark::State& state) {
     std::mt19937 engine;
     auto gen = std::bind(std::ref(normal), std::ref(engine));
 
-    while (state.KeepRunning()) {
-        state.PauseTiming();
-        auto temporary_d = d;
-        state.ResumeTiming();
-        benchmark::DoNotOptimize(hybrid_test(temporary_d, gen));
-    }
+    hybrid_test(state, d, gen);
 }
 BENCHMARK(goog_hybrid_with_heavy_clustering)
 BENCH_SIZES;
@@ -272,12 +247,7 @@ static void dict_hybrid_with_only_collisions(benchmark::State& state) {
     std::mt19937 engine;
     auto gen = std::bind(std::ref(normal), std::ref(engine));
 
-    while (state.KeepRunning()) {
-        state.PauseTiming();
-        auto temporary_d = d;
-        state.ResumeTiming();
-        benchmark::DoNotOptimize(hybrid_test(temporary_d, gen));
-    }
+    hybrid_test(state, d, gen);
 }
 BENCHMARK(dict_hybrid_with_only_collisions)
 COLLISION_BENCH_SIZES;
@@ -291,12 +261,7 @@ static void umap_hybrid_with_only_collisions(benchmark::State& state) {
     std::mt19937 engine;
     auto gen = std::bind(std::ref(normal), std::ref(engine));
 
-    while (state.KeepRunning()) {
-        state.PauseTiming();
-        auto temporary_d = d;
-        state.ResumeTiming();
-        benchmark::DoNotOptimize(hybrid_test(temporary_d, gen));
-    }
+    hybrid_test(state, d, gen);
 }
 BENCHMARK(umap_hybrid_with_only_collisions)
 COLLISION_BENCH_SIZES;
@@ -312,28 +277,34 @@ static void goog_hybrid_with_only_collisions(benchmark::State& state) {
     std::mt19937 engine;
     auto gen = std::bind(std::ref(normal), std::ref(engine));
 
-    while (state.KeepRunning()) {
-        state.PauseTiming();
-        auto temporary_d = d;
-        state.ResumeTiming();
-        benchmark::DoNotOptimize(hybrid_test(temporary_d, gen));
-    }
+    hybrid_test(state, d, gen);
 }
 BENCHMARK(goog_hybrid_with_only_collisions)
 COLLISION_BENCH_SIZES;
 #endif
 
-template <typename Map, typename Generator>
-int lookup_test(Map& map, Generator& gen) {
+template <typename Map, typename Container>
+int lookup_test_impl(Map& map, Container& lookup_vals) {
     int res = 0;
-    for (std::size_t i = 0; i < 100; i += 1) {
-        auto it = map.find(gen());
+    for (auto&& val: lookup_vals) {
+        auto it = map.find(val);
         if (it != map.end()) {
             res += it->second;
         }
     }
 
     return res;
+}
+
+template <typename State, typename Map, typename Generator>
+void lookup_test(State& state, Map& map, Generator& gen) {
+    std::array<std::size_t, 100> lookup_vals;
+    while (state.KeepRunning()) {
+        state.PauseTiming();
+        std::generate(lookup_vals.begin(), lookup_vals.end(), gen);
+        state.ResumeTiming();
+        benchmark::DoNotOptimize(lookup_test_impl(map, lookup_vals));
+    }
 }
 
 static void dict_lookup(benchmark::State& state) {
@@ -343,9 +314,7 @@ static void dict_lookup(benchmark::State& state) {
     auto gen = std::bind(std::ref(normal), std::ref(engine));
     auto d = build_map<io::dict<int, int>>(test_size, gen);
 
-    while (state.KeepRunning()) {
-        benchmark::DoNotOptimize(lookup_test(d, gen));
-    }
+    lookup_test(state, d, gen);
 }
 BENCHMARK(dict_lookup)
 BENCH_SIZES;
@@ -357,9 +326,7 @@ static void umap_lookup(benchmark::State& state) {
     auto gen = std::bind(std::ref(normal), std::ref(engine));
     auto d = build_map<std::unordered_map<int, int>>(test_size, gen);
 
-    while (state.KeepRunning()) {
-        benchmark::DoNotOptimize(lookup_test(d, gen));
-    }
+    lookup_test(state, d, gen);
 }
 BENCHMARK(umap_lookup)
 BENCH_SIZES;
@@ -372,9 +339,7 @@ static void goog_lookup(benchmark::State& state) {
     auto gen = std::bind(std::ref(normal), std::ref(engine));
     auto d = build_map_google<google::dense_hash_map<int, int>>(test_size, gen);
 
-    while (state.KeepRunning()) {
-        benchmark::DoNotOptimize(lookup_test(d, gen));
-    }
+    lookup_test(state, d, gen);
 }
 BENCHMARK(goog_lookup)
 BENCH_SIZES;
@@ -391,9 +356,7 @@ static void dict_lookup_with_many_misses(benchmark::State& state) {
     std::mt19937 engine;
     auto gen = std::bind(std::ref(normal), std::ref(engine));
 
-    while (state.KeepRunning()) {
-        benchmark::DoNotOptimize(lookup_test(d, gen));
-    }
+    lookup_test(state, d, gen);
 }
 BENCHMARK(dict_lookup_with_many_misses)
 BENCH_SIZES;
@@ -409,9 +372,7 @@ static void umap_lookup_with_many_misses(benchmark::State& state) {
     std::mt19937 engine;
     auto gen = std::bind(std::ref(normal), std::ref(engine));
 
-    while (state.KeepRunning()) {
-        benchmark::DoNotOptimize(lookup_test(d, gen));
-    }
+    lookup_test(state, d, gen);
 }
 BENCHMARK(umap_lookup_with_many_misses)
 BENCH_SIZES;
@@ -429,9 +390,7 @@ static void goog_lookup_with_many_misses(benchmark::State& state) {
     std::mt19937 engine;
     auto gen = std::bind(std::ref(normal), std::ref(engine));
 
-    while (state.KeepRunning()) {
-        benchmark::DoNotOptimize(lookup_test(d, gen));
-    }
+    lookup_test(state, d, gen);
 }
 BENCHMARK(goog_lookup_with_many_misses)
 BENCH_SIZES;
@@ -446,9 +405,7 @@ static void dict_lookup_with_heavy_clustering(benchmark::State& state) {
     std::mt19937 engine;
     auto gen = std::bind(std::ref(normal), std::ref(engine));
 
-    while (state.KeepRunning()) {
-        benchmark::DoNotOptimize(lookup_test(d, gen));
-    }
+    lookup_test(state, d, gen);
 }
 BENCHMARK(dict_lookup_with_heavy_clustering)
 BENCH_SIZES;
@@ -461,9 +418,7 @@ static void umap_lookup_with_heavy_clustering(benchmark::State& state) {
     std::mt19937 engine;
     auto gen = std::bind(std::ref(normal), std::ref(engine));
 
-    while (state.KeepRunning()) {
-        benchmark::DoNotOptimize(lookup_test(d, gen));
-    }
+    lookup_test(state, d, gen);
 }
 BENCHMARK(umap_lookup_with_heavy_clustering)
 BENCH_SIZES;
@@ -478,9 +433,7 @@ static void goog_lookup_with_heavy_clustering(benchmark::State& state) {
     std::mt19937 engine;
     auto gen = std::bind(std::ref(normal), std::ref(engine));
 
-    while (state.KeepRunning()) {
-        benchmark::DoNotOptimize(lookup_test(d, gen));
-    }
+    lookup_test(state, d, gen);
 }
 BENCHMARK(goog_lookup_with_heavy_clustering)
 BENCH_SIZES;
@@ -494,9 +447,7 @@ static void dict_lookup_with_only_collisions(benchmark::State& state) {
     auto d =
         build_map<io::dict<int, int, collision_hasher>>(16 * test_size, gen);
 
-    while (state.KeepRunning()) {
-        benchmark::DoNotOptimize(lookup_test(d, gen));
-    }
+    lookup_test(state, d, gen);
 }
 BENCHMARK(dict_lookup_with_only_collisions)
 COLLISION_BENCH_SIZES;
@@ -509,9 +460,7 @@ static void umap_lookup_with_only_collisions(benchmark::State& state) {
     auto d = build_map<std::unordered_map<int, int, collision_hasher>>(
         16 * test_size, gen);
 
-    while (state.KeepRunning()) {
-        benchmark::DoNotOptimize(lookup_test(d, gen));
-    }
+    lookup_test(state, d, gen);
 }
 BENCHMARK(umap_lookup_with_only_collisions)
 COLLISION_BENCH_SIZES;
@@ -526,9 +475,7 @@ static void goog_lookup_with_only_collisions(benchmark::State& state) {
         build_map_google<google::dense_hash_map<int, int, collision_hasher>>(
             16 * test_size, gen);
 
-    while (state.KeepRunning()) {
-        benchmark::DoNotOptimize(lookup_test(d, gen));
-    }
+    lookup_test(state, d, gen);
 }
 BENCHMARK(goog_lookup_with_only_collisions)
 COLLISION_BENCH_SIZES;
