@@ -10,7 +10,7 @@ ifeq ($(UNAME), Darwin)
 	LIBS=
 endif
 
-ARGS= -std=c++11 -pthread -O3 -DNDEBUG -Wall -W -Wextra -pedantic-errors $(INCLUDES) $(DEFINES)
+ARGS= -std=c++11 -pthread -O3 -g -fno-omit-frame-pointer -DNDEBUG -Wall -W -Wextra -pedantic-errors $(INCLUDES) $(DEFINES)
 
 ifeq ($(CXX),clang++-3.5)
 	ADD_INC_FLAGS = -nostdinc++ -I/usr/local/lib/llvm-3.5/include/c++/v1 -fno-omit-frame-pointer
