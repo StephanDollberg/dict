@@ -33,18 +33,18 @@ BENCHMARK(murmur_hash_mixer);
 #define COLLISION_BENCH_SIZES ->Arg(8)->Arg(8 << 5)->Arg(8 << 10)
 
 struct inc_gen {
-    int operator()() { return _counter++; }
+    std::size_t operator()() { return _counter++; }
 
-    int _counter = 0;
+    std::size_t _counter = 0;
 };
 
 struct collision_hasher {
-    std::size_t operator()(int) const { return 1; }
+    std::size_t operator()(std::size_t) const { return 1; }
 };
 
 template <typename Map, typename Container>
 void insert_test_impl(Map& map, Container& insert_vals) {
-    int i = 0;
+    std::size_t i = 0;
     for (auto&& insert_val: insert_vals) {
         map[insert_val] = i++;
     }
@@ -63,8 +63,8 @@ void insert_test(State& state, Map& map, Generator& gen) {
 }
 
 static void dict_insert(benchmark::State& state) {
-    const int test_size = state.range(0);
-    io::dict<int, int> d;
+    const std::size_t test_size = state.range(0);
+    io::dict<std::size_t, std::size_t> d;
     d.reserve(test_size);
 
     std::uniform_int_distribution<std::size_t> normal(0, 2 * test_size);
@@ -77,8 +77,8 @@ BENCHMARK(dict_insert)
 BENCH_SIZES;
 
 static void umap_insert(benchmark::State& state) {
-    const int test_size = state.range(0);
-    std::unordered_map<int, int> d;
+    const std::size_t test_size = state.range(0);
+    std::unordered_map<std::size_t, std::size_t> d;
     d.reserve(test_size);
 
     std::uniform_int_distribution<std::size_t> normal(0, 2 * test_size);
@@ -92,8 +92,8 @@ BENCH_SIZES;
 
 #ifdef WITH_GOOGLE_BENCH
 static void goog_insert(benchmark::State& state) {
-    const int test_size = state.range(0);
-    google::dense_hash_map<int, int> d(test_size);
+    const std::size_t test_size = state.range(0);
+    google::dense_hash_map<std::size_t, std::size_t> d(test_size);
     d.set_empty_key(0);
 
     std::uniform_int_distribution<std::size_t> normal(0, 2 * test_size);
@@ -108,11 +108,11 @@ BENCH_SIZES;
 
 #ifdef WITH_GOOGLE_BENCH
 template <typename Map, typename Gen>
-Map build_map_google(int size, Gen gen) {
+Map build_map_google(std::size_t size, Gen gen) {
     Map d;
     d.set_empty_key(0);
 
-    for (int i = 0; i != size; ++i) {
+    for (std::size_t i = 0; i != size; ++i) {
         d[gen()] = i;
     }
 
@@ -120,11 +120,11 @@ Map build_map_google(int size, Gen gen) {
 }
 
 template <typename Map>
-Map build_map_google_with_reserve(int size) {
+Map build_map_google_with_reserve(std::size_t size) {
     Map d(size);
     d.set_empty_key(0);
 
-    for (int i = 0; i != size; ++i) {
+    for (std::size_t i = 0; i != size; ++i) {
         d[i] = i;
     }
 
@@ -133,10 +133,10 @@ Map build_map_google_with_reserve(int size) {
 #endif
 
 template <typename Map, typename Gen>
-Map build_map(int size, Gen gen) {
+Map build_map(std::size_t size, Gen gen) {
     Map d;
 
-    for (int i = 0; i != size; ++i) {
+    for (std::size_t i = 0; i != size; ++i) {
         d[gen()] = i;
     }
 
@@ -144,10 +144,10 @@ Map build_map(int size, Gen gen) {
 }
 
 template <typename Map>
-Map build_map_with_reserve(int size) {
+Map build_map_with_reserve(std::size_t size) {
     Map d(size);
 
-    for (int i = 0; i != size; ++i) {
+    for (std::size_t i = 0; i != size; ++i) {
         d[i] = i;
     }
 
@@ -155,8 +155,8 @@ Map build_map_with_reserve(int size) {
 }
 
 template <typename Map, typename Container>
-int hybrid_test_impl(Map& map, Container& test_vals) {
-    int res = 0;
+std::size_t hybrid_test_impl(Map& map, Container& test_vals) {
+    std::size_t res = 0;
     for (auto&& test_val: test_vals) {
         res += map[test_val];
     }
@@ -177,11 +177,11 @@ void hybrid_test(State& state, Map& map, Generator& gen) {
 }
 
 static void dict_hybrid(benchmark::State& state) {
-    const int test_size = state.range(0);
+    const std::size_t test_size = state.range(0);
     std::uniform_int_distribution<std::size_t> normal(0, 2 * test_size - 1);
     std::mt19937 engine;
     auto gen = std::bind(std::ref(normal), std::ref(engine));
-    auto d = build_map<io::dict<int, int>>(test_size, gen);
+    auto d = build_map<io::dict<std::size_t, std::size_t>>(test_size, gen);
 
     hybrid_test(state, d, gen);
 }
@@ -189,11 +189,11 @@ BENCHMARK(dict_hybrid)
 BENCH_SIZES;
 
 static void umap_hybrid(benchmark::State& state) {
-    const int test_size = state.range(0);
+    const std::size_t test_size = state.range(0);
     std::uniform_int_distribution<std::size_t> normal(0, 2 * test_size - 1);
     std::mt19937 engine;
     auto gen = std::bind(std::ref(normal), std::ref(engine));
-    auto d = build_map<std::unordered_map<int, int>>(test_size, gen);
+    auto d = build_map<std::unordered_map<std::size_t, std::size_t>>(test_size, gen);
 
     hybrid_test(state, d, gen);
 }
@@ -202,11 +202,11 @@ BENCH_SIZES;
 
 #ifdef WITH_GOOGLE_BENCH
 static void goog_hybrid(benchmark::State& state) {
-    const int test_size = state.range(0);
+    const std::size_t test_size = state.range(0);
     std::uniform_int_distribution<std::size_t> normal(0, 2 * test_size - 1);
     std::mt19937 engine;
     auto gen = std::bind(std::ref(normal), std::ref(engine));
-    auto d = build_map_google<google::dense_hash_map<int, int>>(test_size, gen);
+    auto d = build_map_google<google::dense_hash_map<std::size_t, std::size_t>>(test_size, gen);
 
     hybrid_test(state, d, gen);
 }
@@ -216,8 +216,8 @@ BENCH_SIZES;
 
 // TODO(improve) - this hits us hard
 static void dict_hybrid_with_heavy_clustering(benchmark::State& state) {
-    const int test_size = state.range(0);
-    auto d = build_map<io::dict<int, int>>(test_size, inc_gen());
+    const std::size_t test_size = state.range(0);
+    auto d = build_map<io::dict<std::size_t, std::size_t>>(test_size, inc_gen());
 
     std::uniform_int_distribution<std::size_t> normal(0, 16 * test_size - 1);
     std::mt19937 engine;
@@ -229,8 +229,8 @@ BENCHMARK(dict_hybrid_with_heavy_clustering)
 BENCH_SIZES;
 
 static void umap_hybrid_with_heavy_clustering(benchmark::State& state) {
-    const int test_size = state.range(0);
-    auto d = build_map<std::unordered_map<int, int>>(test_size, inc_gen());
+    const std::size_t test_size = state.range(0);
+    auto d = build_map<std::unordered_map<std::size_t, std::size_t>>(test_size, inc_gen());
 
     std::uniform_int_distribution<std::size_t> normal(0, 16 * test_size - 1);
     std::mt19937 engine;
@@ -243,8 +243,8 @@ BENCH_SIZES;
 
 #ifdef WITH_GOOGLE_BENCH
 static void goog_hybrid_with_heavy_clustering(benchmark::State& state) {
-    const int test_size = state.range(0);
-    auto d = build_map_google<google::dense_hash_map<int, int>>(test_size,
+    const std::size_t test_size = state.range(0);
+    auto d = build_map_google<google::dense_hash_map<std::size_t, std::size_t>>(test_size,
                                                                 inc_gen());
 
     std::uniform_int_distribution<std::size_t> normal(0, 16 * test_size - 1);
@@ -258,9 +258,9 @@ BENCH_SIZES;
 #endif
 
 static void dict_hybrid_with_only_collisions(benchmark::State& state) {
-    const int test_size = state.range(0);
+    const std::size_t test_size = state.range(0);
     auto d =
-        build_map<io::dict<int, int, collision_hasher>>(test_size, inc_gen());
+        build_map<io::dict<std::size_t, std::size_t, collision_hasher>>(test_size, inc_gen());
 
     std::uniform_int_distribution<std::size_t> normal(0, 16 * test_size - 1);
     std::mt19937 engine;
@@ -272,8 +272,8 @@ BENCHMARK(dict_hybrid_with_only_collisions)
 COLLISION_BENCH_SIZES;
 
 static void umap_hybrid_with_only_collisions(benchmark::State& state) {
-    const int test_size = state.range(0);
-    auto d = build_map<std::unordered_map<int, int, collision_hasher>>(
+    const std::size_t test_size = state.range(0);
+    auto d = build_map<std::unordered_map<std::size_t, std::size_t, collision_hasher>>(
         test_size, inc_gen());
 
     std::uniform_int_distribution<std::size_t> normal(0, 16 * test_size - 1);
@@ -287,9 +287,9 @@ COLLISION_BENCH_SIZES;
 
 #ifdef WITH_GOOGLE_BENCH
 static void goog_hybrid_with_only_collisions(benchmark::State& state) {
-    const int test_size = state.range(0);
+    const std::size_t test_size = state.range(0);
     auto d =
-        build_map_google<google::dense_hash_map<int, int, collision_hasher>>(
+        build_map_google<google::dense_hash_map<std::size_t, std::size_t, collision_hasher>>(
             test_size, inc_gen());
 
     std::uniform_int_distribution<std::size_t> normal(0, 16 * test_size - 1);
@@ -303,8 +303,8 @@ COLLISION_BENCH_SIZES;
 #endif
 
 template <typename Map, typename Container>
-int lookup_test_impl(Map& map, Container& lookup_vals) {
-    int res = 0;
+std::size_t lookup_test_impl(Map& map, Container& lookup_vals) {
+    std::size_t res = 0;
     for (auto&& val: lookup_vals) {
         auto it = map.find(val);
         if (it != map.end()) {
@@ -327,11 +327,11 @@ void lookup_test(State& state, Map& map, Generator& gen) {
 }
 
 static void dict_lookup(benchmark::State& state) {
-    const int test_size = state.range(0);
+    const std::size_t test_size = state.range(0);
     std::uniform_int_distribution<std::size_t> normal(0, 2 * test_size - 1);
     std::mt19937 engine;
     auto gen = std::bind(std::ref(normal), std::ref(engine));
-    auto d = build_map<io::dict<int, int>>(test_size, gen);
+    auto d = build_map<io::dict<std::size_t, std::size_t>>(test_size, gen);
 
     lookup_test(state, d, gen);
 }
@@ -339,11 +339,11 @@ BENCHMARK(dict_lookup)
 BENCH_SIZES;
 
 static void dict_with_finalizer_lookup(benchmark::State& state) {
-    const int test_size = state.range(0);
+    const std::size_t test_size = state.range(0);
     std::uniform_int_distribution<std::size_t> normal(0, 2 * test_size - 1);
     std::mt19937 engine;
     auto gen = std::bind(std::ref(normal), std::ref(engine));
-    auto d = build_map<io::dict<int, int, io::murmur_hash_mixer<std::hash<int>>>>(test_size, gen);
+    auto d = build_map<io::dict<std::size_t, std::size_t, io::murmur_hash_mixer<std::hash<std::size_t>>>>(test_size, gen);
 
     lookup_test(state, d, gen);
 }
@@ -351,11 +351,11 @@ BENCHMARK(dict_with_finalizer_lookup)
 BENCH_SIZES;
 
 static void umap_lookup(benchmark::State& state) {
-    const int test_size = state.range(0);
+    const std::size_t test_size = state.range(0);
     std::uniform_int_distribution<std::size_t> normal(0, 2 * test_size - 1);
     std::mt19937 engine;
     auto gen = std::bind(std::ref(normal), std::ref(engine));
-    auto d = build_map<std::unordered_map<int, int>>(test_size, gen);
+    auto d = build_map<std::unordered_map<std::size_t, std::size_t>>(test_size, gen);
 
     lookup_test(state, d, gen);
 }
@@ -364,11 +364,11 @@ BENCH_SIZES;
 
 #ifdef WITH_GOOGLE_BENCH
 static void goog_lookup(benchmark::State& state) {
-    const int test_size = state.range(0);
+    const std::size_t test_size = state.range(0);
     std::uniform_int_distribution<std::size_t> normal(0, 2 * test_size - 1);
     std::mt19937 engine;
     auto gen = std::bind(std::ref(normal), std::ref(engine));
-    auto d = build_map_google<google::dense_hash_map<int, int>>(test_size, gen);
+    auto d = build_map_google<google::dense_hash_map<std::size_t, std::size_t>>(test_size, gen);
 
     lookup_test(state, d, gen);
 }
@@ -377,11 +377,11 @@ BENCH_SIZES;
 #endif
 
 static void dict_lookup_with_many_misses(benchmark::State& state) {
-    const int test_size = state.range(0);
+    const std::size_t test_size = state.range(0);
     std::uniform_int_distribution<std::size_t> build_normal(0, test_size - 1);
     std::mt19937 build_engine;
     auto build_gen = std::bind(std::ref(build_normal), std::ref(build_engine));
-    auto d = build_map<io::dict<int, int>>(test_size, build_gen);
+    auto d = build_map<io::dict<std::size_t, std::size_t>>(test_size, build_gen);
 
     std::uniform_int_distribution<std::size_t> normal(0, 16 * test_size - 1);
     std::mt19937 engine;
@@ -393,11 +393,11 @@ BENCHMARK(dict_lookup_with_many_misses)
 BENCH_SIZES;
 
 static void umap_lookup_with_many_misses(benchmark::State& state) {
-    const int test_size = state.range(0);
+    const std::size_t test_size = state.range(0);
     std::uniform_int_distribution<std::size_t> build_normal(0, test_size - 1);
     std::mt19937 build_engine;
     auto build_gen = std::bind(std::ref(build_normal), std::ref(build_engine));
-    auto d = build_map<std::unordered_map<int, int>>(test_size, build_gen);
+    auto d = build_map<std::unordered_map<std::size_t, std::size_t>>(test_size, build_gen);
 
     std::uniform_int_distribution<std::size_t> normal(0, 16 * test_size - 1);
     std::mt19937 engine;
@@ -410,11 +410,11 @@ BENCH_SIZES;
 
 #ifdef WITH_GOOGLE_BENCH
 static void goog_lookup_with_many_misses(benchmark::State& state) {
-    const int test_size = state.range(0);
+    const std::size_t test_size = state.range(0);
     std::uniform_int_distribution<std::size_t> build_normal(0, test_size - 1);
     std::mt19937 build_engine;
     auto build_gen = std::bind(std::ref(build_normal), std::ref(build_engine));
-    auto d = build_map_google<google::dense_hash_map<int, int>>(test_size,
+    auto d = build_map_google<google::dense_hash_map<std::size_t, std::size_t>>(test_size,
                                                                 build_gen);
 
     std::uniform_int_distribution<std::size_t> normal(0, 16 * d.size() - 1);
@@ -429,8 +429,8 @@ BENCH_SIZES;
 
 // TODO(improve) - this hits us hard
 static void dict_lookup_with_heavy_clustering(benchmark::State& state) {
-    const int test_size = state.range(0);
-    auto d = build_map<io::dict<int, int>>(test_size, inc_gen());
+    const std::size_t test_size = state.range(0);
+    auto d = build_map<io::dict<std::size_t, std::size_t>>(test_size, inc_gen());
 
     std::uniform_int_distribution<std::size_t> normal(0, 16 * test_size - 1);
     std::mt19937 engine;
@@ -442,8 +442,8 @@ BENCHMARK(dict_lookup_with_heavy_clustering)
 BENCH_SIZES;
 
 static void umap_lookup_with_heavy_clustering(benchmark::State& state) {
-    const int test_size = state.range(0);
-    auto d = build_map<std::unordered_map<int, int>>(test_size, inc_gen());
+    const std::size_t test_size = state.range(0);
+    auto d = build_map<std::unordered_map<std::size_t, std::size_t>>(test_size, inc_gen());
 
     std::uniform_int_distribution<std::size_t> normal(0, 16 * test_size - 1);
     std::mt19937 engine;
@@ -456,8 +456,8 @@ BENCH_SIZES;
 
 #ifdef WITH_GOOGLE_BENCH
 static void goog_lookup_with_heavy_clustering(benchmark::State& state) {
-    const int test_size = state.range(0);
-    auto d = build_map_google<google::dense_hash_map<int, int>>(test_size,
+    const std::size_t test_size = state.range(0);
+    auto d = build_map_google<google::dense_hash_map<std::size_t, std::size_t>>(test_size,
                                                                 inc_gen());
 
     std::uniform_int_distribution<std::size_t> normal(0, 16 * test_size - 1);
@@ -471,12 +471,12 @@ BENCH_SIZES;
 #endif
 
 static void dict_lookup_with_only_collisions(benchmark::State& state) {
-    const int test_size = state.range(0);
+    const std::size_t test_size = state.range(0);
     std::uniform_int_distribution<std::size_t> normal(0, test_size - 1);
     std::mt19937 engine;
     auto gen = std::bind(std::ref(normal), std::ref(engine));
     auto d =
-        build_map<io::dict<int, int, collision_hasher>>(16 * test_size, gen);
+        build_map<io::dict<std::size_t, std::size_t, collision_hasher>>(16 * test_size, gen);
 
     lookup_test(state, d, gen);
 }
@@ -484,11 +484,11 @@ BENCHMARK(dict_lookup_with_only_collisions)
 COLLISION_BENCH_SIZES;
 
 static void umap_lookup_with_only_collisions(benchmark::State& state) {
-    const int test_size = state.range(0);
+    const std::size_t test_size = state.range(0);
     std::uniform_int_distribution<std::size_t> normal(0, test_size - 1);
     std::mt19937 engine;
     auto gen = std::bind(std::ref(normal), std::ref(engine));
-    auto d = build_map<std::unordered_map<int, int, collision_hasher>>(
+    auto d = build_map<std::unordered_map<std::size_t, std::size_t, collision_hasher>>(
         16 * test_size, gen);
 
     lookup_test(state, d, gen);
@@ -498,12 +498,12 @@ COLLISION_BENCH_SIZES;
 
 #ifdef WITH_GOOGLE_BENCH
 static void goog_lookup_with_only_collisions(benchmark::State& state) {
-    const int test_size = state.range(0);
+    const std::size_t test_size = state.range(0);
     std::uniform_int_distribution<std::size_t> normal(0, test_size - 1);
     std::mt19937 engine;
     auto gen = std::bind(std::ref(normal), std::ref(engine));
     auto d =
-        build_map_google<google::dense_hash_map<int, int, collision_hasher>>(
+        build_map_google<google::dense_hash_map<std::size_t, std::size_t, collision_hasher>>(
             16 * test_size, gen);
 
     lookup_test(state, d, gen);
@@ -512,19 +512,19 @@ BENCHMARK(goog_lookup_with_only_collisions)
 COLLISION_BENCH_SIZES;
 #endif
 
-const int build_test_size = 1000;
+const std::size_t build_test_size = 1000;
 
 static void dict_build(benchmark::State& state) {
     for (auto __attribute__((unused)) _ : state) {
         benchmark::DoNotOptimize(
-            build_map<io::dict<int, int>>(build_test_size, inc_gen()));
+            build_map<io::dict<std::size_t, std::size_t>>(build_test_size, inc_gen()));
     }
 }
 BENCHMARK(dict_build);
 
 static void umap_build(benchmark::State& state) {
     for (auto __attribute__((unused)) _ : state) {
-        benchmark::DoNotOptimize(build_map<std::unordered_map<int, int>>(
+        benchmark::DoNotOptimize(build_map<std::unordered_map<std::size_t, std::size_t>>(
             build_test_size, inc_gen()));
     }
 }
@@ -534,7 +534,7 @@ BENCHMARK(umap_build);
 static void goog_build(benchmark::State& state) {
     for (auto __attribute__((unused)) _ : state) {
         // benchmark::DoNotOptimize(
-        build_map_google<google::dense_hash_map<int, int>>(build_test_size,
+        build_map_google<google::dense_hash_map<std::size_t, std::size_t>>(build_test_size,
                                                            inc_gen());
         // );
     }
@@ -545,7 +545,7 @@ BENCHMARK(goog_build);
 static void dict_build_with_reserve(benchmark::State& state) {
     for (auto __attribute__((unused)) _ : state) {
         benchmark::DoNotOptimize(
-            build_map_with_reserve<io::dict<int, int>>(build_test_size));
+            build_map_with_reserve<io::dict<std::size_t, std::size_t>>(build_test_size));
     }
 }
 BENCHMARK(dict_build_with_reserve);
@@ -553,7 +553,7 @@ BENCHMARK(dict_build_with_reserve);
 static void umap_build_with_reserve(benchmark::State& state) {
     for (auto __attribute__((unused)) _ : state) {
         benchmark::DoNotOptimize(
-            build_map_with_reserve<std::unordered_map<int, int>>(
+            build_map_with_reserve<std::unordered_map<std::size_t, std::size_t>>(
                 build_test_size));
     }
 }
@@ -563,7 +563,7 @@ BENCHMARK(umap_build_with_reserve);
 static void goog_build_with_reserve(benchmark::State& state) {
     for (auto __attribute__((unused)) _ : state) {
         // benchmark::DoNotOptimize(
-        build_map_google<google::dense_hash_map<int, int>>(build_test_size,
+        build_map_google<google::dense_hash_map<std::size_t, std::size_t>>(build_test_size,
                                                            inc_gen());
         // );
     }
@@ -572,10 +572,10 @@ BENCHMARK(goog_build_with_reserve);
 #endif
 
 template <typename Map>
-Map build_string_map(int size) {
+Map build_string_map(std::size_t size) {
     Map d;
 
-    for (int i = 0; i != size; ++i) {
+    for (std::size_t i = 0; i != size; ++i) {
         d[std::to_string(i) + std::to_string(i) + std::to_string(i) +
           std::to_string(i) + std::to_string(i) + std::to_string(i) +
           std::to_string(i)] = i;
@@ -586,11 +586,11 @@ Map build_string_map(int size) {
 
 #ifdef WITH_GOOGLE_BENCH
 template <typename Map>
-Map build_string_map_google(int size) {
+Map build_string_map_google(std::size_t size) {
     Map d;
     d.set_empty_key("");
 
-    for (int i = 0; i != size; ++i) {
+    for (std::size_t i = 0; i != size; ++i) {
         d[std::to_string(i) + std::to_string(i) + std::to_string(i) +
           std::to_string(i) + std::to_string(i) + std::to_string(i) +
           std::to_string(i)] = i;
@@ -603,7 +603,7 @@ Map build_string_map_google(int size) {
 static void dict_build_string_keys(benchmark::State& state) {
     for (auto __attribute__((unused)) _ : state) {
         benchmark::DoNotOptimize(
-            build_string_map<io::dict<std::string, int>>(build_test_size));
+            build_string_map<io::dict<std::string, std::size_t>>(build_test_size));
     }
 }
 BENCHMARK(dict_build_string_keys);
@@ -611,7 +611,7 @@ BENCHMARK(dict_build_string_keys);
 static void umap_build_string_keys(benchmark::State& state) {
     for (auto __attribute__((unused)) _ : state) {
         benchmark::DoNotOptimize(
-            build_string_map<std::unordered_map<std::string, int>>(
+            build_string_map<std::unordered_map<std::string, std::size_t>>(
                 build_test_size));
     }
 }
@@ -621,7 +621,7 @@ BENCHMARK(umap_build_string_keys);
 static void goog_build_string_keys(benchmark::State& state) {
     for (auto __attribute__((unused)) _ : state) {
         // benchmark::DoNotOptimize(
-        build_string_map_google<google::dense_hash_map<std::string, int>>(
+        build_string_map_google<google::dense_hash_map<std::string, std::size_t>>(
             build_test_size);
         // );
     }
@@ -630,8 +630,8 @@ BENCHMARK(goog_build_string_keys);
 #endif
 
 template <typename Map, typename LookUpKeys>
-int string_lookup_test(Map& map, const LookUpKeys& keys) {
-    int res = 0;
+std::size_t string_lookup_test(Map& map, const LookUpKeys& keys) {
+    std::size_t res = 0;
     for (auto&& k : keys) {
         res += map.find(k)->second;
     }
@@ -639,11 +639,11 @@ int string_lookup_test(Map& map, const LookUpKeys& keys) {
     return res;
 }
 
-const int string_lookup_test_size = 1000;
+const std::size_t string_lookup_test_size = 1000;
 
 static void dict_string_lookup(benchmark::State& state) {
     auto d =
-        build_string_map<io::dict<std::string, int>>(string_lookup_test_size);
+        build_string_map<io::dict<std::string, std::size_t>>(string_lookup_test_size);
     std::vector<std::string> keys{ "1111111", "2222222", "3333333",
                                    "4444444", "5555555", "6666666",
                                    "7777777", "8888888", "9999999" };
@@ -655,7 +655,7 @@ static void dict_string_lookup(benchmark::State& state) {
 BENCHMARK(dict_string_lookup);
 
 static void umap_string_lookup(benchmark::State& state) {
-    auto d = build_string_map<std::unordered_map<std::string, int>>(
+    auto d = build_string_map<std::unordered_map<std::string, std::size_t>>(
         string_lookup_test_size);
     std::vector<std::string> keys{ "1111111", "2222222", "3333333",
                                    "4444444", "5555555", "6666666",
@@ -669,7 +669,7 @@ BENCHMARK(umap_string_lookup);
 
 #ifdef WITH_GOOGLE_BENCH
 static void goog_string_lookup(benchmark::State& state) {
-    auto d = build_string_map_google<google::dense_hash_map<std::string, int>>(
+    auto d = build_string_map_google<google::dense_hash_map<std::string, std::size_t>>(
         string_lookup_test_size);
     std::vector<std::string> keys{ "1111111", "2222222", "3333333",
                                    "4444444", "5555555", "6666666",
