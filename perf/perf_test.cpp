@@ -10,6 +10,25 @@
 
 #include <benchmark/benchmark.h>
 
+void murmur_hash_mixer(benchmark::State& state) {
+    auto mixer = io::murmur_hash_mixer<std::hash<uint64_t>>{};
+    std::uniform_int_distribution<std::size_t> normal(0, std::numeric_limits<uint64_t>::max());
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+
+    for (auto __attribute__((unused)) _ : state) {
+        state.PauseTiming();
+        std::array<uint64_t, 100> insert_vals;
+        std::generate(insert_vals.begin(), insert_vals.end(), gen);
+        state.ResumeTiming();
+
+        for (auto val : insert_vals) {
+            benchmark::DoNotOptimize(mixer(val));
+        }
+    }
+}
+BENCHMARK(murmur_hash_mixer);
+
 #define BENCH_SIZES ->Arg(8)->Arg(8 << 10)->Arg(8 << 14)->Arg(8 << 20)
 #define COLLISION_BENCH_SIZES ->Arg(8)->Arg(8 << 5)->Arg(8 << 10)
 
@@ -317,6 +336,18 @@ static void dict_lookup(benchmark::State& state) {
     lookup_test(state, d, gen);
 }
 BENCHMARK(dict_lookup)
+BENCH_SIZES;
+
+static void dict_with_finalizer_lookup(benchmark::State& state) {
+    const int test_size = state.range(0);
+    std::uniform_int_distribution<std::size_t> normal(0, 2 * test_size - 1);
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+    auto d = build_map<io::dict<int, int, io::murmur_hash_mixer<std::hash<int>>>>(test_size, gen);
+
+    lookup_test(state, d, gen);
+}
+BENCHMARK(dict_with_finalizer_lookup)
 BENCH_SIZES;
 
 static void umap_lookup(benchmark::State& state) {
