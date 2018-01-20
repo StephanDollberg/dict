@@ -33,7 +33,7 @@ void insert_test_impl(Map& map, Container& insert_vals) {
 
 template <typename State, typename Map, typename Generator>
 void insert_test(State& state, Map& map, Generator& gen) {
-    while (state.KeepRunning()) {
+    for (auto __attribute__((unused)) _ : state) {
         state.PauseTiming();
         auto temporary_map = map;
         std::array<std::size_t, 100> insert_vals;
@@ -147,7 +147,7 @@ int hybrid_test_impl(Map& map, Container& test_vals) {
 
 template <typename State, typename Map, typename Generator>
 void hybrid_test(State& state, Map& map, Generator& gen) {
-    while (state.KeepRunning()) {
+    for (auto __attribute__((unused)) _ : state) {
         state.PauseTiming();
         auto temporary_map = map;
         std::array<std::size_t, 100> test_vals;
@@ -299,7 +299,7 @@ int lookup_test_impl(Map& map, Container& lookup_vals) {
 template <typename State, typename Map, typename Generator>
 void lookup_test(State& state, Map& map, Generator& gen) {
     std::array<std::size_t, 100> lookup_vals;
-    while (state.KeepRunning()) {
+    for (auto __attribute__((unused)) _ : state) {
         state.PauseTiming();
         std::generate(lookup_vals.begin(), lookup_vals.end(), gen);
         state.ResumeTiming();
@@ -484,7 +484,7 @@ COLLISION_BENCH_SIZES;
 const int build_test_size = 1000;
 
 static void dict_build(benchmark::State& state) {
-    while (state.KeepRunning()) {
+    for (auto __attribute__((unused)) _ : state) {
         benchmark::DoNotOptimize(
             build_map<io::dict<int, int>>(build_test_size, inc_gen()));
     }
@@ -492,7 +492,7 @@ static void dict_build(benchmark::State& state) {
 BENCHMARK(dict_build);
 
 static void umap_build(benchmark::State& state) {
-    while (state.KeepRunning()) {
+    for (auto __attribute__((unused)) _ : state) {
         benchmark::DoNotOptimize(build_map<std::unordered_map<int, int>>(
             build_test_size, inc_gen()));
     }
@@ -501,7 +501,7 @@ BENCHMARK(umap_build);
 
 #ifdef WITH_GOOGLE_BENCH
 static void goog_build(benchmark::State& state) {
-    while (state.KeepRunning()) {
+    for (auto __attribute__((unused)) _ : state) {
         // benchmark::DoNotOptimize(
         build_map_google<google::dense_hash_map<int, int>>(build_test_size,
                                                            inc_gen());
@@ -512,7 +512,7 @@ BENCHMARK(goog_build);
 #endif
 
 static void dict_build_with_reserve(benchmark::State& state) {
-    while (state.KeepRunning()) {
+    for (auto __attribute__((unused)) _ : state) {
         benchmark::DoNotOptimize(
             build_map_with_reserve<io::dict<int, int>>(build_test_size));
     }
@@ -520,7 +520,7 @@ static void dict_build_with_reserve(benchmark::State& state) {
 BENCHMARK(dict_build_with_reserve);
 
 static void umap_build_with_reserve(benchmark::State& state) {
-    while (state.KeepRunning()) {
+    for (auto __attribute__((unused)) _ : state) {
         benchmark::DoNotOptimize(
             build_map_with_reserve<std::unordered_map<int, int>>(
                 build_test_size));
@@ -530,7 +530,7 @@ BENCHMARK(umap_build_with_reserve);
 
 #ifdef WITH_GOOGLE_BENCH
 static void goog_build_with_reserve(benchmark::State& state) {
-    while (state.KeepRunning()) {
+    for (auto __attribute__((unused)) _ : state) {
         // benchmark::DoNotOptimize(
         build_map_google<google::dense_hash_map<int, int>>(build_test_size,
                                                            inc_gen());
@@ -570,7 +570,7 @@ Map build_string_map_google(int size) {
 #endif
 
 static void dict_build_string_keys(benchmark::State& state) {
-    while (state.KeepRunning()) {
+    for (auto __attribute__((unused)) _ : state) {
         benchmark::DoNotOptimize(
             build_string_map<io::dict<std::string, int>>(build_test_size));
     }
@@ -578,7 +578,7 @@ static void dict_build_string_keys(benchmark::State& state) {
 BENCHMARK(dict_build_string_keys);
 
 static void umap_build_string_keys(benchmark::State& state) {
-    while (state.KeepRunning()) {
+    for (auto __attribute__((unused)) _ : state) {
         benchmark::DoNotOptimize(
             build_string_map<std::unordered_map<std::string, int>>(
                 build_test_size));
@@ -588,7 +588,7 @@ BENCHMARK(umap_build_string_keys);
 
 #ifdef WITH_GOOGLE_BENCH
 static void goog_build_string_keys(benchmark::State& state) {
-    while (state.KeepRunning()) {
+    for (auto __attribute__((unused)) _ : state) {
         // benchmark::DoNotOptimize(
         build_string_map_google<google::dense_hash_map<std::string, int>>(
             build_test_size);
@@ -617,7 +617,7 @@ static void dict_string_lookup(benchmark::State& state) {
                                    "4444444", "5555555", "6666666",
                                    "7777777", "8888888", "9999999" };
 
-    while (state.KeepRunning()) {
+    for (auto __attribute__((unused)) _ : state) {
         benchmark::DoNotOptimize(string_lookup_test(d, keys));
     }
 }
@@ -630,7 +630,7 @@ static void umap_string_lookup(benchmark::State& state) {
                                    "4444444", "5555555", "6666666",
                                    "7777777", "8888888", "9999999" };
 
-    while (state.KeepRunning()) {
+    for (auto __attribute__((unused)) _ : state) {
         benchmark::DoNotOptimize(string_lookup_test(d, keys));
     }
 }
@@ -644,7 +644,7 @@ static void goog_string_lookup(benchmark::State& state) {
                                    "4444444", "5555555", "6666666",
                                    "7777777", "8888888", "9999999" };
 
-    while (state.KeepRunning()) {
+    for (auto __attribute__((unused)) _ : state) {
         benchmark::DoNotOptimize(string_lookup_test(d, keys));
     }
 }
