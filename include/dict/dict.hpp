@@ -37,6 +37,11 @@ private:
         _internal_allocator;
     typedef std::vector<entry_type, _internal_allocator> table_type;
 
+    struct find_result {
+        std::size_t index;
+        std::size_t hash;
+    };
+
 public:
     typedef typename table_type::size_type size_type;
     typedef typename table_type::difference_type difference_type;
@@ -238,40 +243,40 @@ public:
     }
 
     iterator find(const Key& key) {
-        auto index = find_index(key);
+        auto find = find_index(key);
 
-        if (_table[index].used) {
-            return iterator_from_index(index);
+        if (!_table[find.index].entry_is_free()) {
+            return iterator_from_index(find.index);
         } else {
             return end();
         }
     }
 
     const_iterator find(const Key& key) const {
-        auto index = find_index(key);
+        auto find = find_index(key);
 
-        if (_table[index].used) {
-            return iterator_from_index(index);
+        if (!_table[find.index].entry_is_free()) {
+            return iterator_from_index(find.index);
         } else {
             return end();
         }
     }
 
     Value& at(const Key& key) {
-        auto index = find_index(key);
+        auto find = find_index(key);
 
-        if (_table[index].used) {
-            return _table[index].kv.view.second;
+        if (!_table[find.index].entry_is_free()) {
+            return _table[find.index].kv.view.second;
         }
 
         throw std::out_of_range("Key not in dict");
     }
 
     const Value& at(const Key& key) const {
-        auto index = find_index(key);
+        auto find = find_index(key);
 
-        if (_table[index].used) {
-            return _table[index].kv.view.second;
+        if (!_table[find.index].entry_is_free()) {
+            return _table[find.index].kv.view.second;
         }
 
         throw std::out_of_range("Key not in dict");
@@ -289,13 +294,14 @@ public:
     }
 
     Value& operator[](const Key& key) {
-        auto index = find_index(key);
+        auto find = find_index(key);
+        auto index = find.index;
 
-        if (_table[index].used) {
+        if (!_table[index].entry_is_free()) {
             return _table[index].kv.view.second;
         } else {
             check_expand();
-            return activate_element(find_index(key), key);
+            return activate_element(key);
         }
     }
 
@@ -331,9 +337,10 @@ public:
             new_table.resize(next_size(new_size, max_load_factor()));
 
             for (auto&& e : _table) {
-                if (e.used) {
-                    auto new_index =
+                if (!e.entry_is_free()) {
+                    auto find =
                         find_index_impl(e.kv.view.first, new_table);
+                    auto new_index = find.index;
                     new_table[new_index] = std::move_if_noexcept(e);
                 }
             }
@@ -365,14 +372,14 @@ private:
     std::pair<iterator, bool> insert_entry(Args&&... args) {
         check_expand();
         auto new_entry = make_entry(std::forward<Args>(args)...);
-        auto index = find_index(new_entry.kv.view.first);
+        auto find = find_index_from_entry(new_entry);
 
-        if (_table[index].used) {
-            return { iterator_from_index(index), false };
+        if (!_table[find.index].entry_is_free()) {
+            return { iterator_from_index(find.index), false };
         } else {
-            _table[index] = std::move(new_entry);
+            _table[find.index] = std::move(new_entry);
             ++_element_count;
-            return { iterator_from_index(index), true };
+            return { iterator_from_index(find.index), true };
         }
     }
 
@@ -380,15 +387,15 @@ private:
     template <typename KeyParam, typename Mapped>
     std::pair<iterator, bool> insert_element(KeyParam&& key, Mapped&& mapped) {
         check_expand();
-        auto index = find_index(key);
+        auto find = find_index(key);
 
-        if (_table[index].used) {
-            return { iterator_from_index(index), false };
+        if (!_table[find.index].entry_is_free()) {
+            return { iterator_from_index(find.index), false };
         } else {
-            _table[index] = make_entry(std::forward<KeyParam>(key),
+            _table[find.index] = make_entry_with_hash(find.hash, std::forward<KeyParam>(key),
                                        std::forward<Mapped>(mapped));
             ++_element_count;
-            return { iterator_from_index(index), true };
+            return { iterator_from_index(find.index), true };
         }
     }
 
@@ -397,32 +404,34 @@ private:
     std::pair<iterator, bool> insert_assign_element(KeyParam&& key,
                                                     Mapped&& mapped) {
         check_expand();
-        auto index = find_index(key);
+        auto find = find_index(key);
 
-        if (_table[index].used) {
-            _table[index].kv.view.second = std::forward<Mapped>(mapped);
-            return { iterator_from_index(index), false };
+        if (!_table[find.index].entry_is_free()) {
+            _table[find.index].kv.view.second = std::forward<Mapped>(mapped);
+            return { iterator_from_index(find.index), false };
         } else {
-            _table[index] = make_entry(std::forward<KeyParam>(key),
+            _table[find.index] = make_entry_with_hash(find.hash, std::forward<KeyParam>(key),
                                        std::forward<Mapped>(mapped));
             ++_element_count;
-            return { iterator_from_index(index), true };
+            return { iterator_from_index(find.index), true };
         }
     }
 
     // marks element at given index as in the map
-    Value& activate_element(size_type index, const Key& key) {
-        _table[index].used = true;
-        _table[index].kv.view.first = key;
+    Value& activate_element(const Key& key) {
+        auto find = find_index(key);
+        _table[find.index].hash = find.hash;
+        _table[find.index].kv.view.first = key;
         ++_element_count;
 
-        return _table[index].kv.view.second;
+        return _table[find.index].kv.view.second;
     }
 
     std::pair<size_type, iterator> erase_impl(const Key& key) {
-        auto index = find_index(key);
+        auto find = find_index(key);
+        auto index = find.index;
 
-        if (!_table[index].used) {
+        if (_table[index].entry_is_free()) {
             return { 0, {} };
         }
 
@@ -435,13 +444,13 @@ private:
         while (true) {
             delete_index = next_index(delete_index);
 
-            if (!_table[delete_index].used) {
+            if (_table[delete_index].entry_is_free()) {
                 return { 1,
                          { std::next(_table.begin(), deleted_index),
                            _table.end() } };
             }
 
-            auto new_key = hash_index(_table[delete_index].kv.view.first);
+            auto new_key = hash_index(_table[delete_index].hash);
 
             if ((index <= delete_index)
                     ? ((index < new_key) && (new_key <= delete_index))
@@ -456,30 +465,48 @@ private:
         }
     }
 
-    size_type find_index(const Key& key) const {
+    find_result find_index(const Key& key) const {
         return find_index_impl(key, _table);
     }
 
-    size_type find_index_impl(const Key& key, const table_type& table) const {
-        auto index = hash_index_impl(key, table);
+    find_result find_index_from_entry(const entry_type& entry) const {
+        return find_index_impl_with_hash(entry.hash, entry.kv.const_view.first, _table);
+    }
 
-        while (table[index].used) {
-            if (_key_equal(table[index].kv.view.first, key)) {
-                return index;
+    find_result find_index_impl(const Key& key, const table_type& table) const {
+        auto hash = safe_hash(key);
+        return find_index_impl_with_hash(hash, key, table);
+    }
+
+    find_result find_index_impl_with_hash(std::size_t hash, const Key& key,
+        const table_type& table) const {
+        auto index = hash_index_impl(hash, table);
+
+        while (!table[index].entry_is_free()) {
+            if (table[index].hash == hash && _key_equal(table[index].kv.view.first, key)) {
+                break;
             }
 
             index = next_index_impl(index, table);
         }
 
-        return index;
+        return {index, hash};
     }
 
-    size_type hash_index(const Key& key) const {
-        return hash_index_impl(key, _table);
+    size_type hash_index(std::size_t hash) const {
+        return hash_index_impl(hash, _table);
     }
 
-    size_type hash_index_impl(const Key& key, const table_type& table) const {
-        return _hasher(key) & (table.size() - 1);
+    size_type hash_index_impl(std::size_t hash, const table_type& table) const {
+        return hash & (table.size() - 1);
+    }
+
+    // inspired by Rust HashMap
+    // we set MSB to one as 0 is special value to indicate empty element
+    size_type safe_hash(const Key& key) const {
+        auto hash = _hasher(key);
+        auto hash_bits = sizeof(size_type) * 8;
+        return (std::size_t(1) << (hash_bits - 1)) | hash;
     }
 
     constexpr size_type next_index(size_type index) const {
@@ -493,12 +520,19 @@ private:
 
     template <typename... Args>
     entry_type make_entry(Args&&... args) const {
+        entry_type ret = { detail::key_value<Key, Value>(std::forward<Args>(args)...), 0 };
+        ret.hash = safe_hash(ret.kv.const_view.first);
+        return ret;
+    }
+
+    template <typename... Args>
+    entry_type make_entry_with_hash(std::size_t hash, Args&&... args) const {
         return { detail::key_value<Key, Value>(std::forward<Args>(args)...),
-                 true };
+                 hash };
     }
 
     entry_type empty_slot_factory() const {
-        return { detail::key_value<Key, Value>(Key(), Value()), false };
+        return { detail::key_value<Key, Value>(Key(), Value()), 0 };
     }
 
     iterator iterator_from_index(size_type index) {
