@@ -10,7 +10,7 @@ namespace detail {
 template <typename Key, typename Value>
 struct dict_entry {
     detail::key_value<Key, Value> kv;
-    bool used;
+    std::size_t used;
 
     dict_entry() : kv(), used(false) {}
     template<typename KV>
