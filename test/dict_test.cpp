@@ -17,6 +17,14 @@ struct identity_hasher {
     std::size_t operator()(int x) const { return x; }
 };
 
+struct collision_hasher_different_hash {
+    std::size_t operator()(int x) const {
+        if(x == 1) return 1;
+        if(x == 2) return 1ull | (1ull << 60);
+        if(x == 3) return 1ull | (1ull << 61);
+        return x;
+    }
+};
 
 struct moved_tester {
     int var;
@@ -143,6 +151,15 @@ TEST_CASE("dict operator[]", "[dict][operator[]]") {
         d[2] = test_string2;
         CHECK(d[1] == test_string);
         CHECK(d[2] == test_string2);
+    }
+
+    SECTION("operator[] collision with different hash") {
+        io::dict<int, int, collision_hasher_different_hash> d;
+
+        d[1] = 1;
+        d[2] = 2;
+        CHECK(d[1] == 1);
+        CHECK(d[2] == 2);
     }
 
     SECTION("operator[] overwrite") {
@@ -558,7 +575,6 @@ TEST_CASE("dict erase", "[dict][resize]") {
         CHECK(d.erase(1) == 0);
     }
 
-    SECTION("erase(iterator)") {
         SECTION("basic") {
             io::dict<int, int, identity_hasher> d;
 
@@ -587,7 +603,6 @@ TEST_CASE("dict erase", "[dict][resize]") {
             CHECK(d[1] == 0);
             CHECK(d.size() == 3);
         }
-    }
 
     SECTION("erase check destructor") {
         io::dict<int, destructor_check> d;
