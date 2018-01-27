@@ -140,8 +140,8 @@ TEST_CASE("dict operator[]", "[dict][operator[]]") {
         std::string test_string2 = "hello2";
 
         d[1] = test_string;
-        CHECK(d[1] == test_string);
         d[2] = test_string2;
+        CHECK(d[1] == test_string);
         CHECK(d[2] == test_string2);
     }
 
@@ -578,7 +578,9 @@ TEST_CASE("dict erase", "[dict][resize]") {
             d[1] = 1;
             d[2] = 2;
             d[3] = 3;
+            CHECK(d.size() == 3);
             auto iter = d.find(1);
+            CHECK(iter != d.end());
 
             CHECK(d.erase(iter)->second == 3);
             CHECK(d.size() == 2);
