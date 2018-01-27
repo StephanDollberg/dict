@@ -1,6 +1,6 @@
 STANDARD=-std=c++11
 
-ARGS= $(STANDARD)  -g -fno-omit-frame-pointer -Wall -W -Wextra -pedantic-errors  $(INCLUDES) $(DEFINES)
+ARGS= $(STANDARD) -march=native -g -fno-omit-frame-pointer -Wall -W -Wextra -pedantic-errors  $(INCLUDES) $(DEFINES)
 
 SOURCES = $(wildcard *.cpp)
 OBJS = $(addprefix ./, $(notdir $(SOURCES:.cpp=.o)))
