@@ -1,4 +1,4 @@
-ARGS= -std=c++14 -pthread -O3 -g -fno-omit-frame-pointer -DNDEBUG -Wall -W -Wextra -pedantic-errors $(INCLUDES) $(DEFINES)
+ARGS= -march=native -std=c++14 -pthread -O3 -g -fno-omit-frame-pointer -DNDEBUG -Wall -W -Wextra -pedantic-errors $(INCLUDES) $(DEFINES)
 
 SOURCES = $(wildcard *.cpp)
 OBJS = $(addprefix ./, $(notdir $(SOURCES:.cpp=.o)))
