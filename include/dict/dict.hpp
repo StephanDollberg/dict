@@ -13,6 +13,8 @@
 #include "detail/iterator.hpp"
 #include "detail/key_value.hpp"
 #include "detail/prime.hpp"
+#include <immintrin.h>
+
 
 namespace io {
 
@@ -479,18 +481,65 @@ private:
     }
 
     find_result find_index_impl_with_hash(std::size_t hash, const Key& key,
-        const table_type& table) const {
+        const table_type& table) const 
+    {
         auto index = hash_index_impl(hash, table);
+        auto index_offset = index % 4;
+        index -= index_offset;
 
-        while (!table[index].entry_is_free()) {
-            if (table[index].hash == hash && _key_equal(table[index].kv.view.first, key)) {
-                break;
+        while (true) {
+            // compare to actual value
+            auto hash_mask = _mm256_set1_epi64x(hash);
+
+            std::uint64_t start_index = index * (sizeof(entry_type) / sizeof(std::size_t));
+            start_index += &table[index].hash - reinterpret_cast<const std::uint64_t*>(&table[index]);
+
+            __m256i indices_to_compare = _mm256_set_epi64x(
+                start_index + 3 * sizeof(entry_type) / sizeof(std::size_t),
+                start_index + 2 * sizeof(entry_type) / sizeof(std::size_t), 
+                start_index + 1 * sizeof(entry_type) / sizeof(std::size_t), 
+                start_index
+                );
+
+            __m256i hashes_to_compare = _mm256_i64gather_epi64(
+                reinterpret_cast<const long long*>(&table[0]),
+                indices_to_compare,
+                8);
+
+            __m256i cmp_result = _mm256_cmpeq_epi64(hash_mask, hashes_to_compare);
+
+            int compare_mask = _mm256_movemask_epi8(cmp_result) & 0x01010101;
+
+            // compare to zero
+            __m256i zero_mask = _mm256_setzero_si256();
+            __m256i zero_compare_result = _mm256_cmpeq_epi64(zero_mask, hashes_to_compare);
+            int zero_compare_mask = _mm256_movemask_epi8(zero_compare_result) & 0x01010101;
+
+            while (compare_mask != 0) {
+                int bitpos = __builtin_ctz(compare_mask);
+                std::size_t local_index = index + bitpos / 8;
+
+                if (_key_equal(table[local_index].kv.view.first, key)) {
+                    return {local_index, hash};
+                }
+
+                compare_mask = compare_mask & ~(1 << bitpos);
+            }
+
+            if (zero_compare_mask != 0) {
+                zero_compare_mask = zero_compare_mask & ~((1 << (index_offset * 8)) - 1);
+                std::size_t offset = zero_compare_mask == 0 ? 0 : __builtin_ctz(zero_compare_mask) / 8;
+                return {index + offset, hash};
             }
 
             index = next_index_impl(index, table);
-        }
+            index = next_index_impl(index, table);
+            index = next_index_impl(index, table);
+            index = next_index_impl(index, table);
 
-        return {index, hash};
+            // aligned now so don't need offset anymore
+            index_offset = 0;
+        }
     }
 
     size_type hash_index(std::size_t hash) const {
