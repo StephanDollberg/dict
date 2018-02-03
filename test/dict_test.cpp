@@ -803,6 +803,19 @@ TEST_CASE("proper iterator after insert", "[dict][insert]") {
     CHECK(res.second == true);
 }
 
+TEST_CASE("avx2 test case", "[dict][insert][find]") {
+    io::dict<int, int> d;
+
+    auto first_bucket = (1 << 7) + 1;
+    auto second_bucket = (1 << 8) + 2;
+
+    d[first_bucket] = 23;
+    d[second_bucket] = 45;
+
+    CHECK(d[first_bucket] == 23);
+    CHECK(d[second_bucket] == 45);
+}
+
 TEST_CASE("hash mixer", "[dict]") {
     {
         std::hash<int> my_hasher;
