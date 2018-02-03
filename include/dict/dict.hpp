@@ -1,6 +1,8 @@
 #ifndef DICT_HPP
 #define DICT_HPP
 
+#include <immintrin.h>
+
 #include <functional>
 #include <stdexcept>
 #include <tuple>
@@ -13,6 +15,7 @@
 #include "detail/iterator.hpp"
 #include "detail/key_value.hpp"
 #include "detail/prime.hpp"
+
 
 namespace io {
 
@@ -531,18 +534,47 @@ private:
     find_result find_index_impl_with_hash(std::size_t hash, const Key& key,
         const table_type& table, const meta_table_type& meta_table) const {
         auto hash_split = split_hash(hash);
-        auto index = hash_index_impl(hash_split.higher_bits, table);
 
-        while (slot_in_use_impl(index, meta_table)) {
-            if (meta_table[index] == hash_split.lower_bits
-                && _key_equal(table[index].kv.view.first, key)) {
-                break;
+        auto index = hash_index_impl(hash_split.higher_bits, table);
+        auto index_offset = index % 32;
+        index -= index_offset;
+
+
+        while(true) {
+            __m256i hash_mask = _mm256_set1_epi8(hash_split.lower_bits);
+            __m256i zero_mask = _mm256_set1_epi8(0);
+
+            __m256i meta_vector = _mm256_loadu_si256(
+                reinterpret_cast<__m256i const*>(&meta_table[index]));
+
+            __m256i hash_cmp_result = _mm256_cmpeq_epi8(hash_mask, meta_vector);
+            int hash_cmp_mask = _mm256_movemask_epi8(hash_cmp_result);
+            __m256i zero_cmp_result = _mm256_cmpeq_epi8(zero_mask, meta_vector);
+            int zero_cmp_mask = _mm256_movemask_epi8(zero_cmp_result);
+
+            while (hash_cmp_mask != 0) {
+                int bitpos = __builtin_ctz(hash_cmp_mask);
+                std::size_t local_index = index + bitpos;
+
+                if (_key_equal(table[local_index].kv.view.first, key)) {
+                    return {local_index, hash};
+                }
+
+                hash_cmp_mask = hash_cmp_mask & ~(1llu << bitpos);
             }
 
-            index = next_index_impl(index, table);
-        }
+            zero_cmp_mask = zero_cmp_mask & ~((1llu << index_offset) - 1);
+            if (zero_cmp_mask != 0) {
+                std::size_t offset =  __builtin_ctz(zero_cmp_mask);
+                return {index + offset, hash};
+            }
 
-        return {index, hash};
+            for (std::size_t i = 0; i < 32; ++i) {
+                index = next_index_impl(index, table);
+            }
+
+            index_offset = 0;
+        }
     }
 
     size_type hash_index(std::size_t hash) const {
@@ -587,7 +619,7 @@ private:
             std::next(_table.begin(), index), _table.end(), true };
     }
 
-    size_type initial_size() const { return detail::next_power_of_two(8); }
+    size_type initial_size() const { return detail::next_power_of_two(32); }
 
     constexpr size_type next_size(size_type min_size,
                                   double load_factor) const {
