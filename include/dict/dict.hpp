@@ -552,6 +552,7 @@ private:
             __m256i zero_cmp_result = _mm256_cmpeq_epi8(zero_mask, meta_vector);
             int zero_cmp_mask = _mm256_movemask_epi8(zero_cmp_result);
 
+            hash_cmp_mask = hash_cmp_mask & ~((1llu << index_offset) - 1);
             while (hash_cmp_mask != 0) {
                 int bitpos = __builtin_ctz(hash_cmp_mask);
                 std::size_t local_index = index + bitpos;
