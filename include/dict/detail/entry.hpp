@@ -10,11 +10,11 @@ namespace detail {
 template <typename Key, typename Value>
 struct dict_entry {
     detail::key_value<Key, Value> kv;
-    bool used;
 
-    dict_entry() : kv(), used(false) {}
-    template<typename KV>
-    dict_entry(KV&& kv, bool used) : kv(std::forward<KV>(kv)), used(used) {}
+    // dict_entry() : kv() {}
+    // template<typename KV,
+    // 	typename std::enable_if<!std::is_same<KV, dict_entry<Key, Value>>::value, int>::type>
+    // dict_entry(KV&& kv) : kv(std::forward<KV>(kv)) {}
 };
 
 } // namespace detail

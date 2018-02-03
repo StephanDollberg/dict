@@ -36,6 +36,25 @@ private:
         entry_type>
         _internal_allocator;
     typedef std::vector<entry_type, _internal_allocator> table_type;
+    typedef std::vector<std::uint8_t, _internal_allocator> meta_table_type;
+
+    struct find_result {
+        std::size_t index;
+        std::size_t hash;
+    };
+
+    struct hash_split {
+        std::size_t higher_bits;
+        std::uint8_t lower_bits;
+    };
+
+    bool slot_in_use(find_result find) const {
+        return _meta_table[find.index] != 0;
+    }
+
+    hash_split split_hash(std::size_t hash) const {
+        return {hash >> 7, static_cast<uint8_t>(hash | 0x80)};
+    }
 
 public:
     typedef typename table_type::size_type size_type;
@@ -57,6 +76,7 @@ public:
         // explicit vector( size_type count, const Allocator& alloc =
         // Allocator() );
         _table.resize(next_size(initial_size, initial_load_factor()));
+        _meta_table.resize(next_size(initial_size, initial_load_factor()), 0);
         _max_element_count = initial_load_factor() * _table.size();
     }
 
@@ -103,24 +123,24 @@ public:
         return _table.get_allocator();
     }
 
-    iterator begin() noexcept { return { _table.begin(), _table.end() }; }
+    iterator begin() noexcept { return { _meta_table.data(), _table.begin(), _table.end() }; }
 
     const_iterator begin() const noexcept {
-        return { _table.begin(), _table.end() };
+        return {_meta_table.data(), _table.begin(), _table.end() };
     }
 
     const_iterator cbegin() const noexcept {
-        return { _table.begin(), _table.end() };
+        return { _meta_table.data(), _table.begin(), _table.end() };
     }
 
-    iterator end() noexcept { return { _table.end(), _table.end(), true }; }
+    iterator end() noexcept { return { _meta_table.data(), _table.end(), _table.end(), true }; }
 
     const_iterator end() const noexcept {
-        return { _table.end(), _table.end(), true };
+        return { _meta_table.data(), _table.end(), _table.end(), true };
     }
 
     const_iterator cend() const noexcept {
-        return { _table.end(), _table.end(), true };
+        return { _meta_table.data(), _table.end(), _table.end(), true };
     }
 
     size_type size() const noexcept { return _element_count; }
@@ -134,6 +154,8 @@ public:
         auto old_size = _table.size();
         _table.clear();
         _table.resize(old_size);
+        _meta_table.clear();
+        _meta_table.resize(old_size, 0);
         _element_count = 0;
     }
 
@@ -231,6 +253,7 @@ public:
     void swap(dict<Key, Value, Hasher, KeyEqual, Allocator>& other) {
         using std::swap;
         swap(_table, other._table);
+        swap(_meta_table, other._meta_table);
         swap(_element_count, other._element_count);
         swap(_max_element_count, other._max_element_count);
         swap(_key_equal, other._key_equal);
@@ -238,40 +261,40 @@ public:
     }
 
     iterator find(const Key& key) {
-        auto index = find_index(key);
+        auto find = find_index(key);
 
-        if (_table[index].used) {
-            return iterator_from_index(index);
+        if (slot_in_use(find)) {
+            return iterator_from_index(find.index);
         } else {
             return end();
         }
     }
 
     const_iterator find(const Key& key) const {
-        auto index = find_index(key);
+        auto find = find_index(key);
 
-        if (_table[index].used) {
-            return iterator_from_index(index);
+        if (slot_in_use(find)) {
+            return iterator_from_index(find.index);
         } else {
             return end();
         }
     }
 
     Value& at(const Key& key) {
-        auto index = find_index(key);
+        auto find = find_index(key);
 
-        if (_table[index].used) {
-            return _table[index].kv.view.second;
+        if (slot_in_use(find)) {
+            return _table[find.index].kv.view.second;
         }
 
         throw std::out_of_range("Key not in dict");
     }
 
     const Value& at(const Key& key) const {
-        auto index = find_index(key);
+        auto find = find_index(key);
 
-        if (_table[index].used) {
-            return _table[index].kv.view.second;
+        if (slot_in_use(find)) {
+            return _table[find.index].kv.view.second;
         }
 
         throw std::out_of_range("Key not in dict");
@@ -289,13 +312,13 @@ public:
     }
 
     Value& operator[](const Key& key) {
-        auto index = find_index(key);
+        auto find = find_index(key);
 
-        if (_table[index].used) {
-            return _table[index].kv.view.second;
+        if (slot_in_use(find)) {
+            return _table[find.index].kv.view.second;
         } else {
             check_expand();
-            return activate_element(find_index(key), key);
+            return activate_element(key);
         }
     }
 
@@ -328,18 +351,24 @@ public:
     void reserve(std::size_t new_size) {
         if (new_size > _table.size()) {
             table_type new_table(_table.get_allocator());
-            new_table.resize(next_size(new_size, max_load_factor()));
+            meta_table_type new_meta_table(_meta_table.get_allocator());
 
-            for (auto&& e : _table) {
-                if (e.used) {
-                    auto new_index =
-                        find_index_impl(e.kv.view.first, new_table);
-                    new_table[new_index] = std::move_if_noexcept(e);
+            new_table.resize(next_size(new_size, max_load_factor()));
+            new_meta_table.resize(next_size(new_size, max_load_factor()), 0);
+
+            for (std::size_t index = 0; index < _meta_table.size(); ++index) {
+                if (slot_in_use(index)) {
+                    auto find =
+                        find_index_impl(_table[index].kv.const_view.first,
+                            new_table, new_meta_table);
+                    new_table[find.index] = std::move_if_noexcept(_table[index]);
+                    new_meta_table[find.index] = split_hash(find.hash).lower_bits;
                 }
             }
 
             _max_element_count = max_load_factor() * new_table.size();
             _table.swap(new_table);
+            _meta_table.swap(new_meta_table);
         }
     }
 
@@ -365,14 +394,15 @@ private:
     std::pair<iterator, bool> insert_entry(Args&&... args) {
         check_expand();
         auto new_entry = make_entry(std::forward<Args>(args)...);
-        auto index = find_index(new_entry.kv.view.first);
+        auto find = find_index(new_entry.kv.view.first);
 
-        if (_table[index].used) {
-            return { iterator_from_index(index), false };
+        if (slot_in_use(find)) {
+            return { iterator_from_index(find.index), false };
         } else {
-            _table[index] = std::move(new_entry);
+            _meta_table[find.index] = split_hash(find.hash).lower_bits;
+            _table[find.index] = std::move(new_entry);
             ++_element_count;
-            return { iterator_from_index(index), true };
+            return { iterator_from_index(find.index), true };
         }
     }
 
@@ -380,15 +410,16 @@ private:
     template <typename KeyParam, typename Mapped>
     std::pair<iterator, bool> insert_element(KeyParam&& key, Mapped&& mapped) {
         check_expand();
-        auto index = find_index(key);
+        auto find = find_index(key);
 
-        if (_table[index].used) {
-            return { iterator_from_index(index), false };
+        if (slot_in_use(find)) {
+            return { iterator_from_index(find.index), false };
         } else {
-            _table[index] = make_entry(std::forward<KeyParam>(key),
+            _meta_table[find.index] = split_hash(find.hash).lower_bits;
+            _table[find.index] = make_entry(std::forward<KeyParam>(key),
                                        std::forward<Mapped>(mapped));
             ++_element_count;
-            return { iterator_from_index(index), true };
+            return { iterator_from_index(find.index), true };
         }
     }
 
@@ -397,51 +428,56 @@ private:
     std::pair<iterator, bool> insert_assign_element(KeyParam&& key,
                                                     Mapped&& mapped) {
         check_expand();
-        auto index = find_index(key);
+        auto find = find_index(key);
 
-        if (_table[index].used) {
-            _table[index].kv.view.second = std::forward<Mapped>(mapped);
-            return { iterator_from_index(index), false };
+        if (slot_in_use(find)) {
+            _table[find.index].kv.view.second = std::forward<Mapped>(mapped);
+            return { iterator_from_index(find.index), false };
         } else {
-            _table[index] = make_entry(std::forward<KeyParam>(key),
+            _meta_table[find.index] = split_hash(find.hash).lower_bits;
+            _table[find.index] = make_entry(std::forward<KeyParam>(key),
                                        std::forward<Mapped>(mapped));
             ++_element_count;
-            return { iterator_from_index(index), true };
+            return { iterator_from_index(find.index), true };
         }
     }
 
     // marks element at given index as in the map
-    Value& activate_element(size_type index, const Key& key) {
-        _table[index].used = true;
-        _table[index].kv.view.first = key;
+    Value& activate_element(const Key& key) {
+        auto find = find_index(key);
+        _meta_table[find.index] = split_hash(find.hash).lower_bits;
+        _table[find.index].kv.view.first = key;
         ++_element_count;
 
-        return _table[index].kv.view.second;
+        return _table[find.index].kv.view.second;
     }
 
     std::pair<size_type, iterator> erase_impl(const Key& key) {
-        auto index = find_index(key);
+        auto find = find_index(key);
+        auto index = find.index;
 
-        if (!_table[index].used) {
+        if (!slot_in_use(find)) {
             return { 0, {} };
         }
 
         const auto deleted_index = index;
 
         _table[index] = empty_slot_factory();
+        _meta_table[index] = 0;
         --_element_count;
 
         auto delete_index = index;
         while (true) {
             delete_index = next_index(delete_index);
 
-            if (!_table[delete_index].used) {
+            if (!slot_in_use(delete_index)) {
                 return { 1,
-                         { std::next(_table.begin(), deleted_index),
-                           _table.end() } };
+                         {std::next(_meta_table.data(), deleted_index),
+                            std::next(_table.begin(), deleted_index), _table.end()} };
             }
 
-            auto new_key = hash_index(_table[delete_index].kv.view.first);
+            auto new_key = hash_index(
+                split_hash(safe_hash(_table[delete_index].kv.view.first)).higher_bits);
 
             if ((index <= delete_index)
                     ? ((index < new_key) && (new_key <= delete_index))
@@ -452,34 +488,50 @@ private:
             // swapping previously emptied index with delete_index
             using std::swap;
             swap(_table[index], _table[delete_index]);
+            swap(_meta_table[index], _meta_table[delete_index]);
             index = delete_index;
         }
     }
 
-    size_type find_index(const Key& key) const {
-        return find_index_impl(key, _table);
+    find_result find_index(const Key& key) const {
+        return find_index_impl(key, _table, _meta_table);
     }
 
-    size_type find_index_impl(const Key& key, const table_type& table) const {
-        auto index = hash_index_impl(key, table);
+    find_result find_index_impl(const Key& key,
+        const table_type& table, const meta_table_type& meta_table) const {
+        auto hash = safe_hash(key);
+        return find_index_impl_with_hash(hash, key, table, meta_table);
+    }
 
-        while (table[index].used) {
-            if (_key_equal(table[index].kv.view.first, key)) {
-                return index;
+    find_result find_index_impl_with_hash(std::size_t hash, const Key& key,
+        const table_type& table, const meta_table_type& meta_table) const {
+        auto hash_split = split_hash(hash);
+        auto index = hash_index_impl(hash_split.higher_bits, table);
+
+        while (slot_in_use_impl(index, meta_table)) {
+            if (meta_table[index] == hash_split.lower_bits
+                && _key_equal(table[index].kv.view.first, key)) {
+                break;
             }
 
             index = next_index_impl(index, table);
         }
 
-        return index;
+        return {index, hash};
     }
 
-    size_type hash_index(const Key& key) const {
-        return hash_index_impl(key, _table);
+    size_type hash_index(std::size_t hash) const {
+        return hash_index_impl(hash, _table);
     }
 
-    size_type hash_index_impl(const Key& key, const table_type& table) const {
-        return _hasher(key) & (table.size() - 1);
+    size_type hash_index_impl(std::size_t hash, const table_type& table) const {
+        return hash & (table.size() - 1);
+    }
+
+    // inspired by Rust HashMap
+    // we set MSB to one as 0 is special value to indicate empty element
+    size_type safe_hash(const Key& key) const {
+        return _hasher(key);
     }
 
     constexpr size_type next_index(size_type index) const {
@@ -493,20 +545,21 @@ private:
 
     template <typename... Args>
     entry_type make_entry(Args&&... args) const {
-        return { detail::key_value<Key, Value>(std::forward<Args>(args)...),
-                 true };
+        return { detail::key_value<Key, Value>(std::forward<Args>(args)...) };
     }
 
     entry_type empty_slot_factory() const {
-        return { detail::key_value<Key, Value>(Key(), Value()), false };
+        return { detail::key_value<Key, Value>(Key(), Value()) };
     }
 
     iterator iterator_from_index(size_type index) {
-        return { std::next(_table.begin(), index), _table.end(), true };
+        return { std::next(_meta_table.data(), index),
+            std::next(_table.begin(), index), _table.end(), true };
     }
 
     const_iterator iterator_from_index(size_type index) const {
-        return { std::next(_table.begin(), index), _table.end(), true };
+        return { std::next(_meta_table.data(), index),
+            std::next(_table.begin(), index), _table.end(), true };
     }
 
     size_type initial_size() const { return detail::next_power_of_two(8); }
@@ -518,7 +571,16 @@ private:
 
     constexpr float initial_load_factor() const { return 0.7; }
 
+    bool slot_in_use(std::size_t index) const {
+        return slot_in_use_impl(index, _meta_table);
+    }
+
+    bool slot_in_use_impl(std::size_t index, const meta_table_type& meta_table) const {
+        return meta_table[index] != 0;
+    }
+
     table_type _table;
+    meta_table_type _meta_table;
     size_type _element_count;
     size_type _max_element_count;
     hasher _hasher;

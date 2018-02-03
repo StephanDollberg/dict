@@ -575,34 +575,51 @@ TEST_CASE("dict erase", "[dict][resize]") {
         CHECK(d.erase(1) == 0);
     }
 
-        SECTION("basic") {
-            io::dict<int, int, identity_hasher> d;
+    // hash dependent testing
+    SECTION("basic next is value") {
+        io::dict<int, int, identity_hasher> d;
 
-            d[1] = 2;
-            d[2] = 3;
-            auto iter = d.find(1);
+        d[1] = 2;
+        d[1 << 7] = 3;
+        auto iter = d.find(1);
 
-            CHECK(d.erase(iter)->second == 3);
-            CHECK(d.size() == 1);
-            CHECK(d[1] == 0);
-            CHECK(d.size() == 2);
-        }
-        // implementation testing
-        SECTION("proper iterator after reshift") {
-            io::dict<int, int, erase_move_hasher> d;
+        CHECK(d.erase(iter)->second == 3);
+        CHECK(d.size() == 1);
+        CHECK(d[1] == 0);
+        CHECK(d.size() == 2);
+    }
 
-            d[1] = 1;
-            d[2] = 2;
-            d[3] = 3;
-            CHECK(d.size() == 3);
-            auto iter = d.find(1);
-            CHECK(iter != d.end());
+    // hash dependent testing
+    SECTION("basic next is end()") {
+        io::dict<int, int, identity_hasher> d;
 
-            CHECK(d.erase(iter)->second == 3);
-            CHECK(d.size() == 2);
-            CHECK(d[1] == 0);
-            CHECK(d.size() == 3);
-        }
+        d[1] = 2;
+        d[2] = 3;
+        auto iter = d.find(2);
+
+        CHECK(d.erase(iter) == d.end());
+        CHECK(d.size() == 1);
+        CHECK(d[2] == 0);
+        CHECK(d.size() == 2);
+    }
+
+    // hash dependent testing
+    SECTION("proper iterator after reshift") {
+        io::dict<int, int, erase_move_hasher> d;
+
+        d[1] = 1;
+        d[2] = 2;
+        d[3] = 3;
+        CHECK(d.size() == 3);
+
+        auto iter = d.find(1);
+        CHECK(iter != d.end());
+
+        CHECK(d.erase(iter)->second == 2);
+        CHECK(d.size() == 2);
+        CHECK(d[1] == 0);
+        CHECK(d.size() == 3);
+    }
 
     SECTION("erase check destructor") {
         io::dict<int, destructor_check> d;
@@ -803,6 +820,7 @@ TEST_CASE("hash mixer", "[dict]") {
         CHECK(d[1] == 1);
     }
 
+    // hash dependent
     {
         io::dict<int, int, io::murmur_hash_mixer<std::hash<int>>> d_with_mixer;
         io::dict<int, int> d_without_mixer;
@@ -824,7 +842,7 @@ TEST_CASE("hash mixer", "[dict]") {
                          [](int lhs, std::pair<int, int> rhs) -> bool {
                              return lhs == rhs.first;
                          }));
-        CHECK(!std::equal(ordered.begin(), ordered.end(), d_with_mixer.begin(),
+        CHECK(std::equal(ordered.begin(), ordered.end(), d_with_mixer.begin(),
                           [](int lhs, std::pair<int, int> rhs) -> bool {
                               return lhs == rhs.first;
                           }));
