@@ -16,8 +16,33 @@
 
 namespace io {
 
+template <typename Hasher>
+class murmur_hash_mixer {
+public:
+    using argument_type = typename Hasher::argument_type;
+    using result_type = typename Hasher::result_type;
+
+    murmur_hash_mixer() : hasher_() {}
+    murmur_hash_mixer(Hasher hasher) : hasher_(std::move(hasher)) {}
+
+    result_type operator()(const argument_type& key) const {
+        result_type ret = hasher_(key);
+
+        ret ^= (ret >> 33);
+        ret *= 0xff51afd7ed558ccd;
+        ret ^= (ret >> 33);
+        ret *= 0xc4ceb9fe1a85ec53;
+        ret ^= (ret >> 33);
+
+        return ret;
+    }
+
+private:
+    Hasher hasher_;
+};
+
 // container
-template <typename Key, typename Value, typename Hasher = std::hash<Key>,
+template <typename Key, typename Value, typename Hasher = murmur_hash_mixer<std::hash<Key>>,
           typename KeyEqual = std::equal_to<Key>,
           typename Allocator = std::allocator<std::pair<const Key, Value>>>
 class dict {
@@ -635,31 +660,6 @@ using dict = dict<
 } // namespace pmr
 
 #endif
-
-template <typename Hasher>
-class murmur_hash_mixer {
-public:
-    using argument_type = typename Hasher::argument_type;
-    using result_type = typename Hasher::result_type;
-
-    murmur_hash_mixer() : hasher_() {}
-    murmur_hash_mixer(Hasher hasher) : hasher_(std::move(hasher)) {}
-
-    result_type operator()(const argument_type& key) const {
-        result_type ret = hasher_(key);
-
-        ret ^= (ret >> 33);
-        ret *= 0xff51afd7ed558ccd;
-        ret ^= (ret >> 33);
-        ret *= 0xc4ceb9fe1a85ec53;
-        ret ^= (ret >> 33);
-
-        return ret;
-    }
-
-private:
-    Hasher hasher_;
-};
 
 } // namespace io
 
