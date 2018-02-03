@@ -570,10 +570,7 @@ private:
                 return {index + offset, hash};
             }
 
-            for (std::size_t i = 0; i < 32; ++i) {
-                index = next_index_impl(index, table);
-            }
-
+            index = (index + 32) & (table.size() - 1);
             index_offset = 0;
         }
     }
