@@ -536,21 +536,21 @@ private:
         auto hash_split = split_hash(hash);
 
         auto index = hash_index_impl(hash_split.higher_bits, table);
-        auto index_offset = index % 32;
+        auto index_offset = index % 16;
         index -= index_offset;
 
 
         while(true) {
-            __m256i hash_mask = _mm256_set1_epi8(hash_split.lower_bits);
-            __m256i zero_mask = _mm256_set1_epi8(0);
+            __m128i hash_mask = _mm_set1_epi8(hash_split.lower_bits);
+            __m128i zero_mask = _mm_set1_epi8(0);
 
-            __m256i meta_vector = _mm256_loadu_si256(
-                reinterpret_cast<__m256i const*>(&meta_table[index]));
+            __m128i meta_vector = _mm_loadu_si128(
+                reinterpret_cast<__m128i const*>(&meta_table[index]));
 
-            __m256i hash_cmp_result = _mm256_cmpeq_epi8(hash_mask, meta_vector);
-            int hash_cmp_mask = _mm256_movemask_epi8(hash_cmp_result);
-            __m256i zero_cmp_result = _mm256_cmpeq_epi8(zero_mask, meta_vector);
-            int zero_cmp_mask = _mm256_movemask_epi8(zero_cmp_result);
+            __m128i hash_cmp_result = _mm_cmpeq_epi8(hash_mask, meta_vector);
+            int hash_cmp_mask = _mm_movemask_epi8(hash_cmp_result);
+            __m128i zero_cmp_result = _mm_cmpeq_epi8(zero_mask, meta_vector);
+            int zero_cmp_mask = _mm_movemask_epi8(zero_cmp_result);
 
             hash_cmp_mask = hash_cmp_mask & ~((1llu << index_offset) - 1);
             while (hash_cmp_mask != 0) {
@@ -570,7 +570,7 @@ private:
                 return {index + offset, hash};
             }
 
-            index = (index + 32) & (table.size() - 1);
+            index = (index + 16) & (table.size() - 1);
             index_offset = 0;
         }
     }
