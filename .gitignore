@@ -30,3 +30,10 @@ perf/test_main
 perf/perf.hist.*
 
 perf/*.json
+
+
+.idea
+build/
+cmake-build-debug/
+
+*.data
