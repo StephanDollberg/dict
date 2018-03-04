@@ -6,7 +6,7 @@ compiler:
   - gcc
 
 before_install:
-  - sudo apt-get install -y libboost-all-dev
+  - sudo apt-get install -y libboost-all-dev cmake
 
   - if [ "$CXX" == "g++" ]; then sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test; fi
   - if [ "$CXX" == "g++" ]; then sudo add-apt-repository -y ppa:jonathonf/binutils; fi
@@ -18,6 +18,8 @@ install:
 
 script:
   - cd test
-  - make clean ; CXX=g++ make && make test
-  - make clean ; CXX=g++-7 make with_sanitizers && make test
-  - make clean ; CXX=g++-7 make build17 && make test
+  - mkdir build
+  - cd build
+  - CXX=g++-7 cmake ..
+  - make
+  - make test
