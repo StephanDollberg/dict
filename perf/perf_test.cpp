@@ -90,6 +90,19 @@ static void umap_insert(benchmark::State& state) {
 BENCHMARK(umap_insert)
 BENCH_SIZES;
 
+static void map_insert(benchmark::State& state) {
+    const std::size_t test_size = state.range(0);
+    std::map<std::size_t, std::size_t> d;
+
+    std::uniform_int_distribution<std::size_t> normal(0, 2 * test_size);
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+
+    insert_test(state, d, gen);
+}
+BENCHMARK(map_insert)
+BENCH_SIZES;
+
 #ifdef WITH_GOOGLE_BENCH
 static void goog_insert(benchmark::State& state) {
     const std::size_t test_size = state.range(0);
@@ -362,6 +375,18 @@ static void umap_lookup(benchmark::State& state) {
 BENCHMARK(umap_lookup)
 BENCH_SIZES;
 
+static void map_lookup(benchmark::State& state) {
+    const std::size_t test_size = state.range(0);
+    std::uniform_int_distribution<std::size_t> normal(0, 2 * test_size - 1);
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+    auto d = build_map<std::map<std::size_t, std::size_t>>(test_size, gen);
+
+    lookup_test(state, d, gen);
+}
+BENCHMARK(map_lookup)
+BENCH_SIZES;
+
 #ifdef WITH_GOOGLE_BENCH
 static void goog_lookup(benchmark::State& state) {
     const std::size_t test_size = state.range(0);
@@ -406,6 +431,22 @@ static void umap_lookup_with_many_misses(benchmark::State& state) {
     lookup_test(state, d, gen);
 }
 BENCHMARK(umap_lookup_with_many_misses)
+BENCH_SIZES;
+
+static void map_lookup_with_many_misses(benchmark::State& state) {
+    const std::size_t test_size = state.range(0);
+    std::uniform_int_distribution<std::size_t> build_normal(0, test_size - 1);
+    std::mt19937 build_engine;
+    auto build_gen = std::bind(std::ref(build_normal), std::ref(build_engine));
+    auto d = build_map<std::map<std::size_t, std::size_t>>(test_size, build_gen);
+
+    std::uniform_int_distribution<std::size_t> normal(0, 16 * test_size - 1);
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+
+    lookup_test(state, d, gen);
+}
+BENCHMARK(map_lookup_with_many_misses)
 BENCH_SIZES;
 
 #ifdef WITH_GOOGLE_BENCH
@@ -666,6 +707,19 @@ static void umap_string_lookup(benchmark::State& state) {
     }
 }
 BENCHMARK(umap_string_lookup);
+
+static void map_string_lookup(benchmark::State& state) {
+    auto d = build_string_map<std::map<std::string, std::size_t>>(
+        string_lookup_test_size);
+    std::vector<std::string> keys{ "1111111", "2222222", "3333333",
+                                   "4444444", "5555555", "6666666",
+                                   "7777777", "8888888", "9999999" };
+
+    for (auto __attribute__((unused)) _ : state) {
+        benchmark::DoNotOptimize(string_lookup_test(d, keys));
+    }
+}
+BENCHMARK(map_string_lookup);
 
 #ifdef WITH_GOOGLE_BENCH
 static void goog_string_lookup(benchmark::State& state) {
