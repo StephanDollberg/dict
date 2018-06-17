@@ -538,8 +538,8 @@ void swap(dict<Key, Value, Hasher, KeyEqual, Allocator>& A,
 
 template <typename Key, typename Value, typename Hasher, typename KeyEqual,
           typename Allocator>
-bool operator==(dict<Key, Value, Hasher, KeyEqual, Allocator>& A,
-                dict<Key, Value, Hasher, KeyEqual, Allocator>& B) {
+bool operator==(const dict<Key, Value, Hasher, KeyEqual, Allocator>& A,
+                const dict<Key, Value, Hasher, KeyEqual, Allocator>& B) {
     if (A.size() != B.size()) {
         return false;
     }
@@ -557,8 +557,8 @@ bool operator==(dict<Key, Value, Hasher, KeyEqual, Allocator>& A,
 
 template <typename Key, typename Value, typename Hasher, typename KeyEqual,
           typename Allocator>
-bool operator!=(dict<Key, Value, Hasher, KeyEqual, Allocator>& A,
-                dict<Key, Value, Hasher, KeyEqual, Allocator>& B) {
+bool operator!=(const dict<Key, Value, Hasher, KeyEqual, Allocator>& A,
+                const dict<Key, Value, Hasher, KeyEqual, Allocator>& B) {
     return !(A == B);
 }
 
