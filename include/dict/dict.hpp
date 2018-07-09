@@ -12,7 +12,7 @@
 #include "detail/entry.hpp"
 #include "detail/iterator.hpp"
 #include "detail/key_value.hpp"
-#include "detail/prime.hpp"
+#include "detail/math_util.hpp"
 
 namespace io {
 

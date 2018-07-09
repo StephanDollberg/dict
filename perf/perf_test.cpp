@@ -1,5 +1,6 @@
 #include "../include/dict/dict.hpp"
 
+#include <algorithm>
 #include <functional>
 #include <random>
 #include <unordered_map>
