@@ -10,10 +10,10 @@ namespace detail {
 // inspired/taken from libc++
 template <class Key, class Value>
 union key_value {
-    typedef Key key_type;
-    typedef Value mapped_type;
-    typedef std::pair<const key_type, mapped_type> value_type;
-    typedef std::pair<key_type, mapped_type> internal_value_type;
+    using key_type = Key;
+    using mapped_type = Value;
+    using value_type = std::pair<const key_type, mapped_type>;
+    using internal_value_type = std::pair<key_type, mapped_type>;
 
     value_type const_view;
     internal_value_type view;

@@ -22,28 +22,28 @@ template <typename Key, typename Value, typename Hasher = std::hash<Key>,
           typename Allocator = std::allocator<std::pair<const Key, Value>>>
 class dict {
 public:
-    typedef Key key_type;
-    typedef Value mapped_type;
-    typedef Allocator allocator_type;
-    typedef Hasher hasher;
-    typedef KeyEqual key_equal;
+    using key_type = Key;
+    using mapped_type = Value;
+    using allocator_type = Allocator;
+    using hasher = Hasher;
+    using key_equal = KeyEqual;
 
-    typedef std::pair<const Key, Value> value_type;
+    using value_type = std::pair<const Key, Value>;
 
 private:
-    typedef detail::dict_entry<Key, Value> entry_type;
-    typedef typename std::allocator_traits<Allocator>::template rebind_alloc<
-        entry_type>
-        _internal_allocator;
-    typedef std::vector<entry_type, _internal_allocator> table_type;
+    using entry_type = detail::dict_entry<Key, Value>;
+    using _internal_allocator =
+        typename std::allocator_traits<Allocator>::template rebind_alloc<
+        entry_type>;
+    using table_type = std::vector<entry_type, _internal_allocator>;
 
 public:
-    typedef typename table_type::size_type size_type;
-    typedef typename table_type::difference_type difference_type;
-    typedef value_type& reference;
+    using size_type = typename table_type::size_type;
+    using difference_type = typename table_type::difference_type;
+    using reference = value_type&;
 
-    typedef detail::dict_iterator<Key, Value> iterator;
-    typedef detail::const_dict_iterator<Key, Value> const_iterator;
+    using iterator = detail::dict_iterator<Key, Value>;
+    using const_iterator = detail::const_dict_iterator<Key, Value>;
 
     dict() : dict(initial_size()) {}
 
