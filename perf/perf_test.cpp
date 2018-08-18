@@ -4,6 +4,7 @@
 #include <functional>
 #include <random>
 #include <unordered_map>
+#include <array>
 
 #ifdef WITH_GOOGLE_BENCH
 #include <sparsehash/dense_hash_map>
