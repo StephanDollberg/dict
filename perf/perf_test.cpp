@@ -403,6 +403,78 @@ BENCHMARK(goog_lookup)
 BENCH_SIZES;
 #endif
 
+template <typename State, typename Map, typename Engine>
+void only_hits_lookup_test(State& state, Map& map, Engine& engine) {
+    std::uniform_int_distribution<std::size_t> normal(0, map.size());
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+    std::vector<std::size_t> vals;
+    vals.reserve(map.size());
+    for(auto&& kv: map) {
+        vals.push_back(kv.first);
+    }
+
+    std::array<std::size_t, 100> lookup_vals;
+
+    for (auto __attribute__((unused)) _ : state) {
+        state.PauseTiming();
+        std::generate(lookup_vals.begin(), lookup_vals.end(), [&] () {
+            return vals[gen()];
+        });
+        state.ResumeTiming();
+        benchmark::DoNotOptimize(lookup_test_impl(map, lookup_vals));
+    }
+}
+
+static void dict_lookup_only_hits(benchmark::State& state) {
+    const std::size_t test_size = state.range(0);
+    std::uniform_int_distribution<std::size_t> normal(0, 2 * test_size - 1);
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+    auto d = build_map<io::dict<std::size_t, std::size_t>>(test_size, gen);
+
+    only_hits_lookup_test(state, d, engine);
+}
+BENCHMARK(dict_lookup_only_hits)
+BENCH_SIZES;
+
+static void umap_lookup_only_hits(benchmark::State& state) {
+    const std::size_t test_size = state.range(0);
+    std::uniform_int_distribution<std::size_t> normal(0, 2 * test_size - 1);
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+    auto d = build_map<std::unordered_map<std::size_t, std::size_t>>(test_size, gen);
+
+    only_hits_lookup_test(state, d, engine);
+}
+BENCHMARK(umap_lookup_only_hits)
+BENCH_SIZES;
+
+static void map_lookup_only_hits(benchmark::State& state) {
+    const std::size_t test_size = state.range(0);
+    std::uniform_int_distribution<std::size_t> normal(0, 2 * test_size - 1);
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+    auto d = build_map<std::map<std::size_t, std::size_t>>(test_size, gen);
+
+    only_hits_lookup_test(state, d, engine);
+}
+BENCHMARK(map_lookup_only_hits)
+BENCH_SIZES;
+
+#ifdef WITH_GOOGLE_BENCH
+static void goog_lookup_only_hits(benchmark::State& state) {
+    const std::size_t test_size = state.range(0);
+    std::uniform_int_distribution<std::size_t> normal(0, 2 * test_size - 1);
+    std::mt19937 engine;
+    auto gen = std::bind(std::ref(normal), std::ref(engine));
+    auto d = build_map_google<google::dense_hash_map<std::size_t, std::size_t>>(test_size, gen);
+
+    only_hits_lookup_test(state, d, engine);
+}
+BENCHMARK(goog_lookup_only_hits)
+BENCH_SIZES;
+#endif
+
 static void dict_lookup_with_many_misses(benchmark::State& state) {
     const std::size_t test_size = state.range(0);
     std::uniform_int_distribution<std::size_t> build_normal(0, test_size - 1);
